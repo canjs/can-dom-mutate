@@ -1,0 +1,48 @@
+{
+  "name": "can-dom-mutate",
+  "description": "Dispatch and listen for DOM mutations",
+  "version": "0.0.0",
+  "author": {
+    "name": "Chris Andrejewski",
+    "email": "core@donejs.com",
+    "url": "https://bitovi.com"
+  },
+  "bugs": {
+    "url": "https://github.com/canjs/can-dom-mutate/issues"
+  },
+  "dependencies": {
+    "can-util": "^3.8.4"
+  },
+  "devDependencies": {
+    "fixpack": "^2.3.1",
+    "jshint": "^2.9.1",
+    "steal": "^1.3.1",
+    "steal-qunit": "^1.0.1",
+    "steal-tools": "^1.2.0",
+    "testee": "^0.3.0"
+  },
+  "homepage": "https://github.com/canjs/can-dom-mutate",
+  "keywords": [
+    "canjs",
+    "mutation",
+    "mutationobserver",
+    "observer"
+  ],
+  "license": "MIT",
+  "main": "can-dom-mutate",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/canjs/can-dom-mutate.git"
+  },
+  "scripts": {
+    "build": "node build.js",
+    "jshint": "jshint ./*.js ./events/*.js --config",
+    "lint": "fixpack && npm run jshint",
+    "preversion": "npm test && npm run build",
+    "test": "npm run lint && npm run testee",
+    "testee": "testee test.html --browsers firefox"
+  },
+  "steal": {
+    "main": "can-dom-mutate"
+  }
+}

@@ -1,0 +1,23 @@
+language: node_js
+node_js: node
+before_install:
+- export DISPLAY=:99.0
+- sh -e /etc/init.d/xvfb start
+- npm i -g greenkeeper-lockfile@1
+before_script: greenkeeper-lockfile-update
+after_script: greenkeeper-lockfile-upload
+matrix:
+  include:
+  - env: INSTALL_TYPE="locked"
+  - env: INSTALL_TYPE="canary"
+install: npm run install-$INSTALL_TYPE
+addons:
+  firefox: '51.0'
+deploy:
+  provider: npm
+  email: core@donejs.com
+  api_key:
+    secure: sof7h4kgu2XPamYXWEe5acavKtIW5gip+cOmJ8XhJP0ONLgmum8k543EhQpObeKyw/U33E7MbVP+DlSIHKFjMUVDyaOZXbbTuBtlh/MWRVJyb4rIE5pNxYVXZKRC+yZg97G6DaLdv0unfDN5baH7D5ooq3RAqG1cbCD91w3/BPtKm7LgYSPKnspZ0ZJWogAG/bJXZ4abMI0IwFDUu9uw1CzuQi6peT7f1Yg71CdDeZJnSFnF4NJK4hV9Nctih2hwXUUtAO+2YKU/jfnQalwlZN38axptCSOgQVI4AFWf+4ioiW07/JurWIshsp1f7pgiCgX/iYBB27s4SgMUGTri9TXetl6WmBbs9mZi626nYfSkWXEEKg3sMwaMfFpcjtmLr7fkDtNwp6zAJyJsbweCAODdEnV3ADgGww6pe/Pqs9f2xldBrEXEB9asoHK3HgQ+Ol9IJRhK4Z+UWPL9mHq8aTktmE2sr8TSLtYiG7gk0vhl9Fb4cQATkTd0iZVpkjqrs4dMyLhshrZNqjaNeNH+ENz6M0mPDKaFEJ7xLHhpy2nThp94BsbOfwl1DhqgYAO1wEnmbCkkog6OZS1zbkBF2nuPFrke5LheKcItUztwAyAuLqAlHjKo0O9Gkov+/ZadEL5DLco+4XRNaW17u08pEBwGy+oT/7UHIrhgyvgUaGs=
+  on:
+    tags: true
+    repo: canjs/can-dom-mutate
