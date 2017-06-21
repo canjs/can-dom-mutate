@@ -36,6 +36,8 @@
   },
   "scripts": {
     "build": "node build.js",
+    "install-canary": "npm install --no-shrinkwrap",
+    "install-locked": "npm install",
     "jshint": "jshint ./*.js ./events/*.js --config",
     "lint": "fixpack && npm run jshint",
     "preversion": "npm test && npm run build",
