@@ -11,6 +11,7 @@
     "url": "https://github.com/canjs/can-dom-mutate/issues"
   },
   "dependencies": {
+    "can-dom-events": "^1.0.2",
     "can-util": "^3.8.4"
   },
   "devDependencies": {
