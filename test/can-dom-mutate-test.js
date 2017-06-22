@@ -1,5 +1,5 @@
 var unit = require('steal-qunit');
-var domMutate = require('./can-dom-mutate');
+var domMutate = require('../can-dom-mutate');
 
 unit.module('can-dom-mutate');
 
