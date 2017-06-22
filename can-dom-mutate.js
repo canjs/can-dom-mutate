@@ -119,10 +119,10 @@ function observeMutations(target, observerKey, config, handler) {
 function handleTreeMutations(mutations) {
 	mutations.forEach(function (mutation) {
 		each(mutation.addNodes, function (node) {
-			domMutate.insertNode(node);
+			domMutate.dispatchNodeInsertion(node);
 		});
 		each(mutation.removedNodes, function (node) {
-			domMutate.removeNode(node);
+			domMutate.dispatchNodeRemoval(node);
 		});
 	});
 }
@@ -133,7 +133,7 @@ function handleAttributeMutations(mutations) {
 			var node = mutation.target;
 			var attributeName = mutation.attributeName;
 			var oldValue = mutation.oldValue;
-			domMutate.changeAttribute(node, attributeName, oldValue);
+			domMutate.dispatchNodeAttributeChange(node, attributeName, oldValue);
 		}
 	});
 }
@@ -238,13 +238,13 @@ var addRemovalListener = addGlobalListener(removalListeners);
 var addAttributeChangeListener = addGlobalListener(attributeChangeListeners);
 
 domMutate = {
-	insertNode: function (node, callback) {
+	dispatchNodeInsertion: function (node, callback) {
 		dispatchInsertion(toNodes(node), callback);
 	},
-	removeNode: function (node, callback) {
+	dispatchNodeRemoval: function (node, callback) {
 		dispatchRemoval(toNodes(node), callback);
 	},
-	changeAttribute: function (node, attributeName, oldValue, callback) {
+	dispatchNodeAttributeChange: function (node, attributeName, oldValue, callback) {
 		dispatchAttributeChange({
 			node: node,
 			attributeName: attributeName,
