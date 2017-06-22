@@ -6,26 +6,29 @@ var synthetic = require('./can-dom-mutate');
 
 var compat = {
 	appendChild: function (newChild) {
+		var result = this.appendChild(newChild);
 		synthetic.dispatchNodeInsertion(newChild);
-		return this.appendChild(newChild);
+		return result;
 	},
 	insertBefore: function (newChild, refNode) {
+		var result = this.insertBefore(newChild, refNode);
 		synthetic.dispatchNodeInsertion(newChild);
-		return this.insertBefore(newChild, refNode);
+		return result;
 	},
 	removeChild: function (child) {
+		var result = this.removeChild(child);
 		synthetic.dispatchNodeRemoval(child);
-		return this.removeChild(child);
+		return result;
 	},
 	replaceChild: function (newChild, oldChild) {
-		synthetic.dispatchNodeRemoval(oldChild);
 		var result = this.replaceChild(newChild, oldChild);
+		synthetic.dispatchNodeRemoval(oldChild);
 		synthetic.dispatchNodeInsertion(newChild);
 		return result;
 	},
 	setAttribute: function (name, value) {
 		var oldAttributeValue = this.getAttribute(name);
-		var result = synthetic.dispatchNodeAttributeChange(this, name, value);
+		var result = this.setAttribute(name, value);
 		synthetic.dispatchNodeAttributeChange(this, name, oldAttributeValue);
 		return result;
 	}

@@ -1,0 +1,180 @@
+var unit = require('steal-qunit');
+var domMutate = require('../can-dom-mutate');
+var node = require('../node');
+var testUtils = require('./test-utils');
+
+var test = unit.test;
+var moduleWithMutationObserver = testUtils.moduleWithMutationObserver;
+var moduleWithoutMutationObserver = testUtils.moduleWithoutMutationObserver;
+var mock = testUtils.mock;
+
+node.autoConfigure(); // needed for methods to optimize
+
+function neverCall(assert, obj, methodName) {
+	return mock(obj, methodName, function () {
+		assert.ok(false, methodName + ' should not be called');
+	});
+}
+
+moduleWithMutationObserver('can-dom-mutate/node', function () {
+	test('appendChild should not call domMutate.dispatchNodeInsertion', function (assert) {
+		var parent = testUtils.getFixture();
+		var child = document.createElement('div');
+		var undo = neverCall(assert, domMutate, 'dispatchNodeInsertion');
+
+		node.appendChild.call(parent, child);
+		undo();
+
+		assert.ok(parent.contains(child), 'child should be in parent');
+	});
+
+	test('insertBefore should not call domMutate.dispatchNodeInsertion', function (assert) {
+		var parent = testUtils.getFixture();
+		var sibling = document.createElement('span');
+		var child = document.createElement('div');
+		var undo = neverCall(assert, domMutate, 'dispatchNodeInsertion');
+
+		parent.appendChild(sibling);
+		node.insertBefore.call(parent, child, sibling);
+		undo();
+
+		assert.ok(parent.contains(child), 'child should be in parent');
+	});
+
+	test('removeChild should not call domMutate.dispatchNodeRemoval', function (assert) {
+		var parent = testUtils.getFixture();
+		var child = document.createElement('div');
+		var undo = neverCall(assert, domMutate, 'dispatchNodeRemoval');
+
+		parent.appendChild(child);
+		node.removeChild.call(parent, child);
+		undo();
+
+		assert.ok(!parent.contains(child), 'child should not be in parent');
+	});
+
+	test('replaceChild should not call domMutate.dispatchNodeRemoval+Insertion', function (assert) {
+		var parent = testUtils.getFixture();
+		var sibling = document.createElement('span');
+		var child = document.createElement('div');
+		var undoRemoval = neverCall(assert, domMutate, 'dispatchNodeRemoval');
+		var undoInsertion = neverCall(assert, domMutate, 'dispatchNodeInsertion');
+
+		parent.appendChild(sibling);
+		node.replaceChild.call(parent, child, sibling);
+		undoRemoval();
+		undoInsertion();
+
+		assert.ok(!parent.contains(sibling), 'sibling should not be in parent');
+		assert.ok(parent.contains(child), 'child should be in parent');
+	});
+
+	test('setAttribute should not call domMutate.dispatchNodeAttributeChange', function (assert) {
+		var element = document.createElement('div');
+		var undo = neverCall(assert, domMutate, 'dispatchNodeAttributeChange');
+
+		node.setAttribute.call(element, 'data-foo', 'bar');
+		undo();
+
+		assert.equal(element.getAttribute('data-foo'), 'bar', 'Attribute should be set');
+	});
+});
+
+moduleWithoutMutationObserver('can-dom-mutate/node', function () {
+	test('appendChild should call domMutate.dispatchNodeInsertion', function (assert) {
+		var done = assert.async();
+		var parent = testUtils.getFixture();
+		var child = document.createElement('div');
+
+		var undo = mock(domMutate, 'dispatchNodeInsertion', function (node, callback) {
+			assert.equal(node, child, 'Should pass the child being appended');
+			assert.equal(callback, undefined, 'Should not pass a callback');
+			assert.ok(parent.contains(node), 'Node should be in parent before dispatch is called');
+			undo();
+			done();
+		});
+
+		node.appendChild.call(parent, child);
+	});
+
+	test('insertBefore should call domMutate.dispatchNodeInsertion', function (assert) {
+		var done = assert.async();
+		var parent = testUtils.getFixture();
+		var sibling = document.createElement('span');
+		var child = document.createElement('div');
+
+		var undo = mock(domMutate, 'dispatchNodeInsertion', function (node, callback) {
+			assert.equal(node, child, 'Should pass the child being appended');
+			assert.equal(callback, undefined, 'Should not pass a callback');
+			assert.ok(parent.contains(node), 'Node should be in parent before dispatch is called');
+			undo();
+			done();
+		});
+
+		parent.appendChild(sibling);
+		node.insertBefore.call(parent, child, sibling);
+	});
+
+	test('removeChild should call domMutate.dispatchNodeRemoval', function (assert) {
+		var done = assert.async();
+		var parent = testUtils.getFixture();
+		var child = document.createElement('div');
+
+		var undo = mock(domMutate, 'dispatchNodeRemoval', function (node, callback) {
+			assert.equal(node, child, 'Should pass the child being removed');
+			assert.equal(callback, undefined, 'Should not pass a callback');
+			assert.ok(!parent.contains(node), 'Node should be removed before dispatch is called');
+			undo();
+			done();
+		});
+
+		parent.appendChild(child);
+		node.removeChild.call(parent, child);
+	});
+
+	test('replaceChild should call domMutate.dispatchNodeRemoval+Insertion', function (assert) {
+		var done = assert.async();
+		var parent = testUtils.getFixture();
+		var sibling = document.createElement('span');
+		var child = document.createElement('div');
+		var isSiblingRemoved = false;
+
+		var undoRemoval = mock(domMutate, 'dispatchNodeRemoval', function (node, callback) {
+			assert.equal(node, sibling, 'Should pass the sibling being removed');
+			assert.equal(callback, undefined, 'Should not pass a callback');
+			assert.ok(!parent.contains(node), 'Node should be removed before dispatch is called');
+			undoRemoval();
+			isSiblingRemoved = true;
+		});
+
+		var undoInsertion = mock(domMutate, 'dispatchNodeInsertion', function (node, callback) {
+			assert.ok(isSiblingRemoved, 'Sibling should be removed before the child is inserted (as far as dispatch order is concerned)');
+			assert.equal(node, child, 'Should pass the child being inserted');
+			assert.equal(callback, undefined, 'Should not pass a callback');
+			assert.ok(parent.contains(node), 'Node should be inserted before dispatch is called');
+			undoInsertion();
+			done();
+		});
+
+		parent.appendChild(sibling);
+		node.replaceChild.call(parent, child, sibling);
+	});
+
+	test('setAttribute should call domMutate.dispatchNodeAttributeChange', function (assert) {
+		var done = assert.async();
+		var element = document.createElement('div');
+		element.setAttribute('data-foo', 'bar');
+
+		var undo = mock(domMutate, 'dispatchNodeAttributeChange', function (node, attributeName, oldAttributeValue, callback) {
+			assert.equal(node, element, 'Should pass the element whose attribute is changing');
+			assert.equal(attributeName, 'data-foo', 'Should pass the changed attribute name');
+			assert.equal(oldAttributeValue, 'bar', 'Should pass the old attribute value');
+			assert.equal(callback, undefined, 'Should not pass a callback');
+			assert.equal(element.getAttribute('data-foo'), 'baz', 'Node should have the new attribute value');
+			undo();
+			done();
+		});
+
+		node.setAttribute.call(element, 'data-foo', 'baz');
+	});
+});
