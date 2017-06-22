@@ -1,3 +1,5 @@
+'use strict';
+
 var addEventCompat = require('can-dom-events/helpers/add-event-compat');
 
 var attributesEvent = require('./attributes');
