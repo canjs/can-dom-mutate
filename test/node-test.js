@@ -8,8 +8,6 @@ var moduleWithMutationObserver = testUtils.moduleWithMutationObserver;
 var moduleWithoutMutationObserver = testUtils.moduleWithoutMutationObserver;
 var mock = testUtils.mock;
 
-node.autoConfigure(); // needed for methods to optimize
-
 function neverCall(assert, obj, methodName) {
 	return mock(obj, methodName, function () {
 		assert.ok(false, methodName + ' should not be called');

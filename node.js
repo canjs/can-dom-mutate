@@ -1,7 +1,7 @@
 'use strict';
 
 var assign = require('can-util/js/assign/assign');
-var observer = require('./observer');
+var observer = require('./-observer');
 var synthetic = require('./can-dom-mutate');
 
 var compat = {
@@ -52,18 +52,14 @@ var normal = {
 	}
 };
 
-var mutate;
+var mutate = {};
 
 function setMutateStrategy(observer) {
 	var strategy = observer ? normal : compat;
 	assign(mutate, strategy);
 }
 
-mutate = {
-	autoConfigure: function () {
-		return observer.onChange(setMutateStrategy);
-	}
-};
+setMutateStrategy(observer.getValue());
+observer.onValue(setMutateStrategy);
 
-setMutateStrategy(observer.get());
 module.exports = mutate;

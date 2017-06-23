@@ -4,7 +4,7 @@ var each = require('can-util/js/each/each');
 var domData = require('can-util/dom/data/data');
 var CIDMap = require('can-util/js/cid-map/cid-map');
 var setImmediate = require('can-util/js/set-immediate/set-immediate');
-var observer = require('./observer');
+var observer = require('./-observer');
 
 var domMutate;
 
@@ -164,7 +164,7 @@ function dispatch(listenerKey, documentDataKey, isAttributes) {
 }
 
 function observeMutations(target, observerKey, config, handler) {
-	var MutationObserver = observer.get();
+	var MutationObserver = observer.getValue();
 	if (!MutationObserver) {
 		return function () {
 		};

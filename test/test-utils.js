@@ -1,8 +1,8 @@
 var unit = require('steal-qunit');
-var observer = require('../observer');
+var observer = require('../-observer');
 
 function moduleWithMutationObserver (title, tests) {
-	if (!observer.get()) {
+	if (!observer.getValue()) {
 		return
 	}
 
@@ -12,11 +12,11 @@ function moduleWithMutationObserver (title, tests) {
 function moduleWithoutMutationObserver (title, tests) {
 	var hooks = {
 		setup: function () {
-			this.oldMutationObserver = observer.get();
-			observer.set(undefined);
+			this.oldMutationObserver = observer.getValue();
+			observer.setValue(undefined);
 		},
 		teardown: function () {
-			observer.set(this.oldMutationObserver);
+			observer.setValue(this.oldMutationObserver);
 		}
 	};
 
