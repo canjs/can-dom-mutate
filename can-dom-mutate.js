@@ -2,7 +2,9 @@
 
 var each = require('can-util/js/each/each');
 var domData = require('can-util/dom/data/data');
+var CIDMap = require('can-util/js/cid-map/cid-map');
 var setImmediate = require('can-util/js/set-immediate/set-immediate');
+var getGlobalDocument = require('can-util/dom/document/document');
 var observer = require('./observer');
 
 var domMutate;
@@ -42,8 +44,16 @@ function batch(processBatchItems) {
 	};
 }
 
+/*
+Currently, can-util prevents the following solution.
+
+For memory safety when a node is removed from the
+dom so is all of its domData. In order to track
+removed nodes, we must store our listeners on the
+document which maps the listeners to the target.
+
 function getTargetListeners(target, key) {
-	return domData.get.call(target, key);
+return domData.get.call(target, key);
 }
 
 function addTargetListener(target, key, listener) {
@@ -63,6 +73,55 @@ function addTargetListener(target, key, listener) {
 			}
 		}
 	};
+}
+*/
+
+function getDocument(target) {
+	return target.ownerDocument || target.document || target;
+}
+
+function getTargetListeners (target, key) {
+	var doc = getDocument(target);
+	var targetListenersMap = domData.get.call(doc, key);
+	if (!targetListenersMap) {
+		return;
+	}
+
+	return targetListenersMap.get(target);
+}
+
+function addTargetListener (target, key, listener) {
+	var doc = getDocument(target);
+	var targetListenersMap = domData.get.call(doc, key);
+	if (!targetListenersMap) {
+		targetListenersMap = new CIDMap();
+		domData.set.call(doc, key, targetListenersMap);
+	}
+	var targetListeners = targetListenersMap.get(target);
+	if (!targetListeners) {
+		targetListeners = [];
+		targetListenersMap.set(target, targetListeners);
+	}
+	targetListeners.push(listener);
+}
+
+function removeTargetListener (target, key, listener) {
+	var doc = getDocument(target);
+	var targetListenersMap = domData.get.call(doc, key);
+	if (!targetListenersMap) {
+		return;
+	}
+	var targetListeners = targetListenersMap.get(target);
+	if (!targetListeners) {
+		return;
+	}
+	eliminate(targetListeners, listener);
+	if (targetListeners.size === 0) {
+		targetListenersMap['delete'](target);
+		if (targetListenersMap.size === 0) {
+			domData.clean.call(doc, key);
+		}
+	}
 }
 
 function dispatch(listenerKey, globalListeners, isAttributes) {
@@ -95,12 +154,12 @@ function observeMutations(target, observerKey, config, handler) {
 	var observerData = domData.get.call(target, observerKey);
 	if (!observerData) {
 		var targetObserver = new MutationObserver(handler);
-		targetObserver.connect(target, config);
+		targetObserver.observe(target, config);
 		observerData = {
 			observer: targetObserver,
 			observingCount: 0
 		};
-		domData.set.call(target, observerKey);
+		domData.set.call(target, observerKey, observerData);
 	}
 
 	observerData.observingCount++;
@@ -109,7 +168,7 @@ function observeMutations(target, observerKey, config, handler) {
 		if (observerData) {
 			observerData.observingCount--;
 			if (observerData.observingCount <= 0) {
-				targetObserver.disconnect();
+				observerData.observer.disconnect();
 				domData.clean.call(target, observerKey);
 			}
 		}
@@ -118,7 +177,7 @@ function observeMutations(target, observerKey, config, handler) {
 
 function handleTreeMutations(mutations) {
 	mutations.forEach(function (mutation) {
-		each(mutation.addNodes, function (node) {
+		each(mutation.addedNodes, function (node) {
 			domMutate.dispatchNodeInsertion(node);
 		});
 		each(mutation.removedNodes, function (node) {
@@ -138,10 +197,6 @@ function handleAttributeMutations(mutations) {
 	});
 }
 
-function getDocument(target) {
-	return target.ownerDocument || target.document || target;
-}
-
 var treeMutationConfig = {
 	subtree: true,
 	childList: true
@@ -149,7 +204,7 @@ var treeMutationConfig = {
 
 var attributeMutationConfig = {
 	attributes: true,
-	oldAttributeValue: true
+	attributeOldValue: true
 };
 
 function addNodeListener(listenerKey, observerKey, isAttributes) {
@@ -161,18 +216,31 @@ function addNodeListener(listenerKey, observerKey, isAttributes) {
 			stopObserving = observeMutations(getDocument(target).documentElement, observerKey, treeMutationConfig, handleTreeMutations);
 		}
 
-		var removeTargetListener = addTargetListener(target, listenerKey, listener);
+		addTargetListener(target, listenerKey, listener);
 		return function removeNodeListener() {
 			stopObserving();
-			removeTargetListener();
+			removeTargetListener(target, listenerKey, listenerKey);
 		};
 	};
 }
 
-function addGlobalListener(listenerGroup) {
+function addGlobalListener(listenerData, addNodeListener) {
 	return function addGlobalGroupListener(listener) {
+		var listenerGroup = listenerData.listeners;
+		if (listenerGroup.length === 0) {
+			// We need to have at least one nodeListener
+			// for global mutation events to propagate.
+			// NOTE: This will behave unexpectedly when the
+			// document switches, unless something in the
+			// new document is observed or all global
+			// listeners are cleaned up on the first document first.
+			var doc = getGlobalDocument().documentElement;
+			listenerData.removeListener = addNodeListener(doc, function () {});
+		}
+
 		listenerGroup.push(listener);
 		var isRemoved = false;
+
 		return function removeGlobalGroupListener() {
 			if (isRemoved) {
 				var message = [
@@ -183,6 +251,11 @@ function addGlobalListener(listenerGroup) {
 			}
 
 			eliminate(listenerGroup, listener);
+			if (listenerGroup.length === 0) {
+				listenerData.removeListener();
+				listenerData.removeListener = undefined;
+			}
+
 			isRemoved = true;
 		};
 	};
@@ -233,9 +306,13 @@ var addNodeRemovalListener = addNodeListener(removalDataKey, treeDataKey);
 var addNodeAttributeChangeListener = addNodeListener(attributeChangeDataKey, attributeDataKey, true);
 
 // global listeners
-var addInsertionListener = addGlobalListener(insertionListeners);
-var addRemovalListener = addGlobalListener(removalListeners);
-var addAttributeChangeListener = addGlobalListener(attributeChangeListeners);
+// var addInsertionListener = addGlobalListener(insertionListeners);
+var globalRemovalListenerData = {listeners: removalListeners};
+var addRemovalListener = addGlobalListener(
+	globalRemovalListenerData,
+	addNodeRemovalListener
+);
+// var addAttributeChangeListener = addGlobalListener(attributeChangeListeners);
 
 domMutate = {
 	dispatchNodeInsertion: function (node, callback) {
@@ -256,9 +333,9 @@ domMutate = {
 	onNodeRemoval: addNodeRemovalListener,
 	onNodeAttributeChange: addNodeAttributeChangeListener,
 
-	onInsertion: addInsertionListener,
+	// onInsertion: addInsertionListener,
 	onRemoval: addRemovalListener,
-	onAttributeChange: addAttributeChangeListener
+	// onAttributeChange: addAttributeChangeListener
 };
 
 module.exports = domMutate;
