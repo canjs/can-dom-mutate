@@ -61,7 +61,7 @@ moduleMutationObserver('can-dom-mutate', function () {
 		var parent = testUtils.getFixture();
 		var child = document.createElement('div');
 
-		var undo = domMutate.onRemoval(function (node) {
+		var undo = domMutate.onRemoval(document.documentElement, function (node) {
 			assert.equal(node, child, 'Node should be the removed child');
 
 			undo();
