@@ -4,7 +4,6 @@ var each = require('can-util/js/each/each');
 var domData = require('can-util/dom/data/data');
 var CIDMap = require('can-util/js/cid-map/cid-map');
 var setImmediate = require('can-util/js/set-immediate/set-immediate');
-var getGlobalDocument = require('can-util/dom/document/document');
 var observer = require('./observer');
 
 var domMutate;
@@ -80,6 +79,18 @@ function getDocument(target) {
 	return target.ownerDocument || target.document || target;
 }
 
+function isDocumentElement (node) {
+	return getDocument(node).documentElement === node;
+}
+
+function getDocumentListeners (target, key) {
+	var doc = getDocument(target);
+	var data = domData.get.call(doc, key);
+	if (data) {
+		return data.listeners;
+	}
+}
+
 function getTargetListeners (target, key) {
 	var doc = getDocument(target);
 	var targetListenersMap = domData.get.call(doc, key);
@@ -124,21 +135,29 @@ function removeTargetListener (target, key, listener) {
 	}
 }
 
-function dispatch(listenerKey, globalListeners, isAttributes) {
+function dispatch(listenerKey, documentDataKey, isAttributes) {
 	return function dispatchEvents(events) {
 		for (var e = 0; e < events.length; e++) {
 			var event = events[e];
 			var target = isAttributes ? event.node : event;
+
+
 			var targetListeners = getTargetListeners(target, listenerKey);
 			if (targetListeners) {
-				// dispatch for target listeners
 				for (var t = 0; t < targetListeners.length; t++) {
 					targetListeners[t](event);
 				}
 			}
-			// dispatch for global listeners
-			for (var l = 0; l < globalListeners.length; l++) {
-				globalListeners[l](event);
+
+			if (!documentDataKey) {
+				return;
+			}
+
+			var documentListeners = getDocumentListeners(target, documentDataKey);
+			if (documentListeners) {
+				for (var l = 0; l < documentListeners.length; l++) {
+					documentListeners[l](event);
+				}
 			}
 		}
 	};
@@ -207,8 +226,24 @@ var attributeMutationConfig = {
 	attributeOldValue: true
 };
 
+function subscription (fn) {
+	return function _subscription () {
+		var disposal = fn.apply(this, arguments);
+		var isDisposed = false;
+		return function _disposal () {
+			if (isDisposed) {
+				var fnName = fn.name || fn.displayName || 'an anonymous function';
+				var message = 'Disposal function returned by ' + fnName + ' called more than once.';
+				throw new Error(message);
+			}
+			disposal.apply(this, arguments);
+			isDisposed = true;
+		};
+	};
+}
+
 function addNodeListener(listenerKey, observerKey, isAttributes) {
-	return function _addNodeListener(target, listener) {
+	return subscription(function _addNodeListener(target, listener) {
 		var stopObserving;
 		if (isAttributes) {
 			stopObserving = observeMutations(target, observerKey, attributeMutationConfig, handleAttributeMutations);
@@ -221,44 +256,44 @@ function addNodeListener(listenerKey, observerKey, isAttributes) {
 			stopObserving();
 			removeTargetListener(target, listenerKey, listenerKey);
 		};
-	};
+	});
 }
 
-function addGlobalListener(listenerData, addNodeListener) {
-	return function addGlobalGroupListener(listener) {
-		var listenerGroup = listenerData.listeners;
-		if (listenerGroup.length === 0) {
-			// We need to have at least one nodeListener
-			// for global mutation events to propagate.
-			// NOTE: This will behave unexpectedly when the
-			// document switches, unless something in the
-			// new document is observed or all global
-			// listeners are cleaned up on the first document first.
-			var doc = getGlobalDocument().documentElement;
-			listenerData.removeListener = addNodeListener(doc, function () {});
+function addGlobalListener(globalDataKey, addNodeListener) {
+	return subscription(function addGlobalGroupListener(documentElement, listener) {
+		if (!isDocumentElement(documentElement)) {
+			throw new Error('Global mutation listeners must pass a documentElement');
 		}
 
-		listenerGroup.push(listener);
-		var isRemoved = false;
+		var doc = getDocument(documentElement);
+		var documentData = domData.get.call(doc, globalDataKey);
+		if (!documentData) {
+			documentData = {listeners: []};
+			domData.set.call(doc, globalDataKey, documentData);
+		}
+
+		var listeners = documentData.listeners;
+		if (listeners.length === 0) {
+			// We need at least on listener for mutation events to propagate
+			documentData.removeListener = addNodeListener(doc, function () {});
+		}
+
+		listeners.push(listener);
 
 		return function removeGlobalGroupListener() {
-			if (isRemoved) {
-				var message = [
-					'Remove function called more than once',
-					'Global mutation listeners can only be removed once'
-				].join('. ');
-				throw new Error(message);
+			var documentData = domData.get.call(doc, globalDataKey);
+			if (!documentData) {
+				return;
 			}
 
-			eliminate(listenerGroup, listener);
-			if (listenerGroup.length === 0) {
-				listenerData.removeListener();
-				listenerData.removeListener = undefined;
+			var listeners = documentData.listeners;
+			eliminate(listeners, listener);
+			if (listeners.length === 0) {
+				documentData.removeListener();
+				domData.clean.call(doc, globalDataKey);
 			}
-
-			isRemoved = true;
 		};
-	};
+	});
 }
 
 function toNodes(child) {
@@ -282,23 +317,21 @@ function toNodes(child) {
 
 var domMutationPrefix = 'domMutation';
 
-// listener keys
+// target listener keys
 var insertionDataKey = domMutationPrefix + 'InsertionData';
 var removalDataKey = domMutationPrefix + 'RemovalData';
 var attributeChangeDataKey = domMutationPrefix + 'AttributeChangeData';
+
+// document listener keys
+var documentRemovalDataKey = domMutationPrefix + 'DocumentRemovalData';
 
 // observer keys
 var treeDataKey = domMutationPrefix + 'TreeData';
 var attributeDataKey = domMutationPrefix + 'AttributeData';
 
-// listener buckets
-var insertionListeners = [];
-var removalListeners = [];
-var attributeChangeListeners = [];
-
-var dispatchInsertion = batch(dispatch(insertionDataKey, insertionListeners));
-var dispatchRemoval = batch(dispatch(removalDataKey, removalListeners));
-var dispatchAttributeChange = batch(dispatch(attributeChangeDataKey, attributeChangeListeners, true));
+var dispatchInsertion = batch(dispatch(insertionDataKey));
+var dispatchRemoval = batch(dispatch(removalDataKey, documentRemovalDataKey));
+var dispatchAttributeChange = batch(dispatch(attributeChangeDataKey, null, true));
 
 // node listeners
 var addNodeInsertionListener = addNodeListener(insertionDataKey, treeDataKey);
@@ -306,13 +339,10 @@ var addNodeRemovalListener = addNodeListener(removalDataKey, treeDataKey);
 var addNodeAttributeChangeListener = addNodeListener(attributeChangeDataKey, attributeDataKey, true);
 
 // global listeners
-// var addInsertionListener = addGlobalListener(insertionListeners);
-var globalRemovalListenerData = {listeners: removalListeners};
 var addRemovalListener = addGlobalListener(
-	globalRemovalListenerData,
+	documentRemovalDataKey,
 	addNodeRemovalListener
 );
-// var addAttributeChangeListener = addGlobalListener(attributeChangeListeners);
 
 domMutate = {
 	dispatchNodeInsertion: function (node, callback) {
@@ -333,9 +363,7 @@ domMutate = {
 	onNodeRemoval: addNodeRemovalListener,
 	onNodeAttributeChange: addNodeAttributeChangeListener,
 
-	// onInsertion: addInsertionListener,
-	onRemoval: addRemovalListener,
-	// onAttributeChange: addAttributeChangeListener
+	onRemoval: addRemovalListener
 };
 
 module.exports = domMutate;
