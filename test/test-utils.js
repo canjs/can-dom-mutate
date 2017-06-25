@@ -3,7 +3,7 @@ var observer = require('../-observer');
 
 function moduleWithMutationObserver (title, tests) {
 	if (!observer.getValue()) {
-		return
+		return;
 	}
 
 	unit.module(title + ' w/ MutationObserver', {}, tests);
