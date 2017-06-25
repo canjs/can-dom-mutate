@@ -5,21 +5,6 @@ var observer = require('./-observer');
 var synthetic = require('./can-dom-mutate');
 
 var compat = {
-	appendChild: function (newChild) {
-		var result = this.appendChild(newChild);
-		synthetic.dispatchNodeInsertion(newChild);
-		return result;
-	},
-	insertBefore: function (newChild, refNode) {
-		var result = this.insertBefore(newChild, refNode);
-		synthetic.dispatchNodeInsertion(newChild);
-		return result;
-	},
-	removeChild: function (child) {
-		var result = this.removeChild(child);
-		synthetic.dispatchNodeRemoval(child);
-		return result;
-	},
 	replaceChild: function (newChild, oldChild) {
 		var result = this.replaceChild(newChild, oldChild);
 		synthetic.dispatchNodeRemoval(oldChild);
@@ -34,23 +19,28 @@ var compat = {
 	}
 };
 
-var normal = {
-	appendChild: function (newChild) {
-		return this.appendChild(newChild);
-	},
-	insertBefore: function (newChild, refNode) {
-		return this.insertBefore(newChild, refNode);
-	},
-	removeChild: function (child) {
-		return this.removeChild(child);
-	},
-	replaceChild: function (newChild, oldChild) {
-		return this.replaceChild(newChild, oldChild);
-	},
-	setAttribute: function (name, value) {
-		return this.setAttribute(name, value);
-	}
-};
+var compatData = [
+	['appendChild', 'Insertion'],
+	['insertBefore', 'Insertion'],
+	['removeChild', 'Removal']
+];
+compatData.forEach(function (pair) {
+	var nodeMethod = pair[0];
+	var dispatchMethod = 'dispatchNode' + pair[1];
+	compat[nodeMethod] = function (node) {
+		var result = this[nodeMethod].apply(this, arguments);
+		synthetic[dispatchMethod](node);
+		return result;
+	};
+});
+
+var normal = {};
+var nodeMethods = ['appendChild', 'insertBefore', 'removeChild', 'replaceChild', 'setAttribute'];
+nodeMethods.forEach(function (methodName) {
+	normal[methodName] = function () {
+		return this[methodName].apply(this, arguments);
+	};
+});
 
 var mutate = {};
 
