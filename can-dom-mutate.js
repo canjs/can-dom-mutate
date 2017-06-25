@@ -43,38 +43,6 @@ function batch(processBatchItems) {
 	};
 }
 
-/*
-Currently, can-util prevents the following solution.
-
-For memory safety when a node is removed from the
-dom so is all of its domData. In order to track
-removed nodes, we must store our listeners on the
-document which maps the listeners to the target.
-
-function getTargetListeners(target, key) {
-return domData.get.call(target, key);
-}
-
-function addTargetListener(target, key, listener) {
-	var listeners = domData.get.call(target, key);
-	if (listeners) {
-		listeners.push(listener);
-	} else {
-		domData.set.call(target, key, [listener]);
-	}
-
-	return function removeTargetListener() {
-		var listeners = domData.get.call(target, key);
-		if (listeners) {
-			eliminate(listeners, listener);
-			if (listeners.length === 0) {
-				domData.clean.call(target, key);
-			}
-		}
-	};
-}
-*/
-
 function getDocument(target) {
 	return target.ownerDocument || target.document || target;
 }
