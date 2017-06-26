@@ -312,13 +312,55 @@ var addRemovalListener = addGlobalListener(
 	addNodeRemovalListener
 );
 
+/**
+ * @module {{}} can-dom-mutate
+ * @parent can-infrastructure
+ * @description Dispatch and listen for DOM mutations.
+ * @group can-dom-events.static 0 static
+ * @group can-dom-events.events 1 events
+ * @signature `domMutation`
+ */
 domMutate = {
+	/**
+	* @function can-dom-mutate.dispatchNodeInsertion dispatchNodeInsertion
+	*
+	* Dispatch an insertion mutation on the given node.
+	*
+	* @signature `dispatchNodeInsertion( node [, callback ] )`
+	* @parent can-dom-mutate.static
+	* @param {Node} node The node on which to dispatch an insertion mutation.
+	* @param {function} callback The optional callback called after the mutation is dispatched.
+	*/
 	dispatchNodeInsertion: function (node, callback) {
 		dispatchInsertion(toNodes(node), callback);
 	},
+
+	/**
+	* @function can-dom-mutate.dispatchNodeRemoval dispatchNodeRemoval
+	*
+	* Dispatch a removal mutation on the given node.
+	*
+	* @signature `dispatchNodeRemoval( node [, callback ] )`
+	* @parent can-dom-mutate.static
+	* @param {Node} node The node on which to dispatch a removal mutation.
+	* @param {function} callback The optional callback called after the mutation is dispatched.
+	*/
 	dispatchNodeRemoval: function (node, callback) {
 		dispatchRemoval(toNodes(node), callback);
 	},
+
+	/**
+	* @function can-dom-mutate.dispatchNodeAttributeChange dispatchNodeAttributeChange
+	*
+	* Dispatch an attribute change mutation on the given node.
+	*
+	* @signature `dispatchNodeAttributeChange( node, attributeName, oldValue [, callback ] )`
+	* @parent can-dom-mutate.static
+	* @param {Node} node The node on which to dispatch an attribute change mutation.
+	* @param {String} attributeName The attribute name whose value has changed.
+	* @param {String} oldValue The attribute value before the change.
+	* @param {function} callback The optional callback called after the mutation is dispatched.
+	*/
 	dispatchNodeAttributeChange: function (node, attributeName, oldValue, callback) {
 		dispatchAttributeChange({
 			node: node,
@@ -327,10 +369,56 @@ domMutate = {
 		}, callback);
 	},
 
+	/**
+	* @function can-dom-mutate.onNodeInsertion onNodeInsertion
+	*
+	* Listen for insertion mutations on the given node.
+	*
+	* @signature `onNodeInsertion( node, callback )`
+	* @parent can-dom-mutate.static
+	* @param {Node} node The node on which to listen for insertion mutations.
+	* @param {function} callback The callback called when an insertion mutation is dispatched.
+	* @return {function} The callback to remove the mutation listener.
+	*/
 	onNodeInsertion: addNodeInsertionListener,
+
+	/**
+	* @function can-dom-mutate.onNodeRemoval onNodeRemoval
+	*
+	* Listen for removal mutations on the given node.
+	*
+	* @signature `onNodeRemoval( node, callback )`
+	* @parent can-dom-mutate.static
+	* @param {Node} node The node on which to listen for removal mutations.
+	* @param {function} callback The callback called when a removal mutation is dispatched.
+	* @return {function} The callback to remove the mutation listener.
+	*/
 	onNodeRemoval: addNodeRemovalListener,
+
+	/**
+	* @function can-dom-mutate.onNodeAttributeChange onNodeAttributeChange
+	*
+	* Listen for attribute change mutations on the given node.
+	*
+	* @signature `onNodeAttributeChange( node, callback )`
+	* @parent can-dom-mutate.static
+	* @param {Node} node The node on which to listen for attribute change mutations.
+	* @param {function} callback The callback called when an attribute change mutation is dispatched.
+	* @return {function} The callback to remove the mutation listener.
+	*/
 	onNodeAttributeChange: addNodeAttributeChangeListener,
 
+	/**
+	* @function can-dom-mutate.onRemoval onRemoval
+	*
+	* Listen for removal mutations on any node within the documentElement.
+	*
+	* @signature `onRemoval( node, callback )`
+	* @parent can-dom-mutate.static
+	* @param {Node} documentElement The doucmentElement on which to listen for removal mutations.
+	* @param {function} callback The callback called when a removal mutation is dispatched.
+	* @return {function} The callback to remove the mutation listener.
+	*/
 	onRemoval: addRemovalListener
 };
 
