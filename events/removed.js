@@ -1,6 +1,6 @@
 'use strict';
 
-var makeMutationEvent = require('./make-mutation-event');
+var makeMutationEvent = require('./-make-mutation-event');
 var onNodeRemoval = require('../can-dom-mutate').onNodeRemoval;
 
 function dispatch(dispatchEvent, target, eventType) {
