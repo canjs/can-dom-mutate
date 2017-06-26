@@ -5,17 +5,21 @@ var observer = require('./-observer');
 var domMutate = require('./can-dom-mutate');
 
 function isInDocument (node) {
-	return node.ownerDocument.documentElement.contains(node);
+	var root = node.ownerDocument.documentElement;
+	if (root === node) {
+		return true;
+	}
+	return root.contains(node);
 }
 
 var synthetic = {
-	dispatchNodeInsertion: function (node) {
+	dispatchNodeInsertion: function (container, node) {
 		if (isInDocument(node)) {
 			domMutate.dispatchNodeInsertion(node);
 		}
 	},
-	dispatchNodeRemoval: function (node) {
-		if (!isInDocument(node)) {
+	dispatchNodeRemoval: function (container, node) {
+		if (isInDocument(container) && !isInDocument(node)) {
 			domMutate.dispatchNodeRemoval(node);
 		}
 	}
@@ -24,8 +28,8 @@ var synthetic = {
 var compat = {
 	replaceChild: function (newChild, oldChild) {
 		var result = this.replaceChild(newChild, oldChild);
-		synthetic.dispatchNodeRemoval(oldChild);
-		synthetic.dispatchNodeInsertion(newChild);
+		synthetic.dispatchNodeRemoval(this, oldChild);
+		synthetic.dispatchNodeInsertion(this, newChild);
 		return result;
 	},
 	setAttribute: function (name, value) {
@@ -46,7 +50,7 @@ compatData.forEach(function (pair) {
 	var dispatchMethod = 'dispatchNode' + pair[1];
 	compat[nodeMethod] = function (node) {
 		var result = this[nodeMethod].apply(this, arguments);
-		synthetic[dispatchMethod](node);
+		synthetic[dispatchMethod](this, node);
 		return result;
 	};
 });

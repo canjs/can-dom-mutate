@@ -176,3 +176,78 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 		node.setAttribute.call(element, 'data-foo', 'baz');
 	});
 });
+
+moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function () {
+	/*
+		We do not want insertion events to dispatched when a node
+		is inserted into a parent which is not in the document.
+		For example, inserting a node into a document fragment
+		should not trigger an insertion event.
+
+		The same applied to removal events. Removal events should
+		only fire when the node is removed from the document.
+
+		Attribute changes can fire at any time as that is observed
+		at the node level, not the document.
+	*/
+
+	test('appendChild should not call dispatchNodeInsertion', function (assert) {
+		assert.expect(0);
+		var fragment = new DocumentFragment();
+		var child = document.createElement('div');
+		var undo = mock(domMutate, 'dispatchNodeInsertion', function () {
+			assert.ok(false, 'This should never be called');
+		});
+
+		node.appendChild.call(fragment, child);
+		undo();
+	});
+
+	test('insertBefore should not call dispatchNodeInsertion', function (assert) {
+		assert.expect(0);
+		var fragment = new DocumentFragment();
+		var child = document.createElement('div');
+		var reference = document.createElement('span');
+		fragment.appendChild(reference);
+
+		var undo = mock(domMutate, 'dispatchNodeInsertion', function () {
+			assert.ok(false, 'This should never be called');
+		});
+
+		node.insertBefore.call(fragment, child, reference);
+		undo();
+	});
+
+	test('removeChild should not call dispatchNodeRemoval', function (assert) {
+		assert.expect(0);
+		var fragment = new DocumentFragment();
+		var child = document.createElement('div');
+		fragment.appendChild(child);
+
+		var undo = mock(domMutate, 'dispatchNodeRemoval', function () {
+			assert.ok(false, 'This should never be called');
+		});
+
+		node.removeChild.call(fragment, child);
+		undo();
+	});
+
+	test('replaceChild should not call dispatchNodeRemoval+Insertion', function (assert) {
+		assert.expect(0);
+		var fragment = new DocumentFragment();
+		var child = document.createElement('div');
+		var oldChild = document.createElement('span');
+		fragment.appendChild(oldChild);
+
+		var undoRemoval = mock(domMutate, 'dispatchNodeRemoval', function () {
+			assert.ok(false, 'This should never be called');
+		});
+		var undoInsertion = mock(domMutate, 'dispatchNodeInsertion', function () {
+			assert.ok(false, 'This should never be called');
+		});
+
+		node.replaceChild.call(fragment, child, oldChild);
+		undoRemoval();
+		undoInsertion();
+	});
+});
