@@ -1,9 +1,9 @@
 {
   "name": "can-dom-mutate",
   "description": "Dispatch and listen for DOM mutations",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "author": {
-    "name": "Chris Andrejewski",
+    "name": "DoneJS Team",
     "email": "core@donejs.com",
     "url": "https://bitovi.com"
   },
@@ -37,12 +37,11 @@
     "url": "git://github.com/canjs/can-dom-mutate.git"
   },
   "scripts": {
-    "build": "node build.js",
     "install-canary": "npm install --no-shrinkwrap",
     "install-locked": "npm install",
     "jshint": "jshint ./*.js ./events/*.js ./test/**/*.js --config",
     "lint": "fixpack && npm run jshint",
-    "preversion": "npm test && npm run build",
+    "preversion": "npm test",
     "test": "npm run lint && npm run testee",
     "testee": "testee test.html --browsers firefox"
   },
