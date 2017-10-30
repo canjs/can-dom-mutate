@@ -1,6 +1,5 @@
 'use strict';
 
-var assign = require('can-util/js/assign/assign');
 var globals = require('can-globals');
 var domMutate = require('./can-dom-mutate');
 
@@ -142,9 +141,10 @@ var mutate = {};
 */
 
 function setMutateStrategy(observer) {
-	console.log('Switching MO to', observer);
 	var strategy = observer ? normal : compat;
-	assign(mutate, strategy);
+	for (var key in strategy) {
+		mutate[key] = strategy[key];
+	}
 }
 
 var mutationObserverKey = 'MutationObserver';

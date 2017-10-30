@@ -11,11 +11,11 @@
     "url": "https://github.com/canjs/can-dom-mutate/issues"
   },
   "dependencies": {
+    "can-cid": "^1.1.1",
     "can-dom-data-state": "^0.1.1",
     "can-dom-events": "^1.0.2",
     "can-globals": "^0.2.3",
-    "can-symbol": "^1.0.0",
-    "can-util": "^3.8.4"
+    "can-symbol": "^1.0.0"
   },
   "devDependencies": {
     "fixpack": "^2.3.1",

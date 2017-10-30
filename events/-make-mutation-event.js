@@ -1,8 +1,8 @@
 'use strict';
 
 var domData = require('can-dom-data-state');
-var CIDMap = require('can-util/js/cid-map/cid-map');
-var CIDSet = require('can-util/js/cid-set/cid-set');
+var CIDMap = require('can-cid/map/map');
+var CIDSet = require('can-cid/set/set');
 
 function getDataKey(eventType, defaultEventType) {
 	return eventType + defaultEventType + 'Data';
