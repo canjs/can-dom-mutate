@@ -1,7 +1,7 @@
 'use strict';
 
 var assign = require('can-util/js/assign/assign');
-var observer = require('./-observer');
+var globals = require('can-globals');
 var domMutate = require('./can-dom-mutate');
 
 function isInDocument (node) {
@@ -142,11 +142,13 @@ var mutate = {};
 */
 
 function setMutateStrategy(observer) {
+	console.log('Switching MO to', observer);
 	var strategy = observer ? normal : compat;
 	assign(mutate, strategy);
 }
 
-setMutateStrategy(observer.getValue());
-observer.onValue(setMutateStrategy);
+var mutationObserverKey = 'MutationObserver';
+setMutateStrategy(globals.getKeyValue(mutationObserverKey));
+globals.onKeyValue(mutationObserverKey, setMutateStrategy);
 
 module.exports = mutate;

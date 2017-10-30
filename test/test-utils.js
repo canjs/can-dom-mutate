@@ -1,8 +1,10 @@
 var unit = require('steal-qunit');
-var observer = require('../-observer');
+var globals = require('can-globals');
+var mutationObserverKey = 'MutationObserver';
 
 function moduleWithMutationObserver (title, tests) {
-	if (!observer.getValue()) {
+	var hasMutationObserverSupport = !!globals.getKeyValue(mutationObserverKey);
+	if (!hasMutationObserverSupport) {
 		return;
 	}
 
@@ -12,11 +14,10 @@ function moduleWithMutationObserver (title, tests) {
 function moduleWithoutMutationObserver (title, tests) {
 	var hooks = {
 		setup: function () {
-			this.oldMutationObserver = observer.getValue();
-			observer.setValue(undefined);
+			globals.setKeyValue(mutationObserverKey, null);
 		},
 		teardown: function () {
-			observer.setValue(this.oldMutationObserver);
+			globals.deleteKeyValue(mutationObserverKey);
 		}
 	};
 
