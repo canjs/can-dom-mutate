@@ -1,7 +1,7 @@
 'use strict';
 
 var each = require('can-util/js/each/each');
-var domData = require('can-util/dom/data/data');
+var domData = require('can-dom-data-state');
 var CIDMap = require('can-util/js/cid-map/cid-map');
 var setImmediate = require('can-util/js/set-immediate/set-immediate');
 var observer = require('./-observer');
