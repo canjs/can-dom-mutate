@@ -1,9 +1,11 @@
 'use strict';
 
-var each = require('can-util/js/each/each');
 var domData = require('can-dom-data-state');
-var CIDMap = require('can-util/js/cid-map/cid-map');
-var setImmediate = require('can-util/js/set-immediate/set-immediate');
+var CIDMap = require('can-cid/map/map');
+var global = require('can-globals/global/global')();
+var setImmediate = global.setImmediate || function (cb) {
+	return setTimeout(cb, 0);
+};
 var getMutationObserver = require('can-globals/mutation-observer/mutation-observer');
 
 var domMutate;
@@ -164,12 +166,17 @@ function observeMutations(target, observerKey, config, handler) {
 
 function handleTreeMutations(mutations) {
 	mutations.forEach(function (mutation) {
-		each(mutation.addedNodes, function (node) {
-			domMutate.dispatchNodeInsertion(node);
-		});
-		each(mutation.removedNodes, function (node) {
-			domMutate.dispatchNodeRemoval(node);
-		});
+		var addedNodes = mutation.addedNodes;
+		var addedCount = addedNodes.length;
+		for (var a = 0; a < addedCount; a++) {
+			domMutate.dispatchNodeInsertion(addedNodes[a]);
+		}
+
+		var removedNodes = mutation.removedNodes;
+		var removedCount = removedNodes.length;
+		for (var r = 0; r < removedCount; r++) {
+			domMutate.dispatchNodeRemoval(removedNodes[r]);
+		}
 	});
 }
 
