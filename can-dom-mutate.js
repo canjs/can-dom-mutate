@@ -1,10 +1,10 @@
 'use strict';
 
 var each = require('can-util/js/each/each');
-var domData = require('can-util/dom/data/data');
+var domData = require('can-dom-data-state');
 var CIDMap = require('can-util/js/cid-map/cid-map');
 var setImmediate = require('can-util/js/set-immediate/set-immediate');
-var observer = require('./-observer');
+var getMutationObserver = require('can-globals/mutation-observer/mutation-observer');
 
 var domMutate;
 
@@ -132,7 +132,7 @@ function dispatch(listenerKey, documentDataKey, isAttributes) {
 }
 
 function observeMutations(target, observerKey, config, handler) {
-	var MutationObserver = observer.getValue();
+	var MutationObserver = getMutationObserver();
 	if (!MutationObserver) {
 		return function () {
 		};
