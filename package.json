@@ -14,8 +14,7 @@
     "can-cid": "^1.1.1",
     "can-dom-data-state": "^0.1.1",
     "can-dom-events": "^1.0.2",
-    "can-globals": "^0.2.3",
-    "can-symbol": "^1.0.0"
+    "can-globals": "^0.2.3"
   },
   "devDependencies": {
     "fixpack": "^2.3.1",
