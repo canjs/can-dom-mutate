@@ -4,7 +4,10 @@ var makeMutationEvent = require('./-make-mutation-event');
 var onNodeRemoval = require('../can-dom-mutate').onNodeRemoval;
 
 function dispatch(dispatchEvent, target, eventType) {
-	dispatchEvent(target, eventType, false);
+	if (!target.ownerDocument.contains(target)) {
+		dispatchEvent(target, eventType, false);
+		return true;
+	}
 }
 
 /**
@@ -31,4 +34,7 @@ function dispatch(dispatchEvent, target, eventType) {
 *
 * mutate.removeChild.call(document.body, foo); // remove event fired
 */
-module.exports = makeMutationEvent('removed', onNodeRemoval, dispatch, true);
+module.exports = makeMutationEvent('removed', onNodeRemoval, dispatch, {
+	dispatchOnce: true,
+	deleteDomData: true
+});

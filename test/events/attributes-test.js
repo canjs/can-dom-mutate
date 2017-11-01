@@ -10,7 +10,7 @@ var test = unit.test;
 var moduleMutationObserver = testUtils.moduleMutationObserver;
 
 moduleMutationObserver('can-dom-mutate/events/attributes', function () {
-	test('should fire attributes event when node is attributes', function (assert) {
+	test('should fire attributes event when node attributes change', function (assert) {
 		var done = assert.async();
 		var child = document.createElement('div');
 		child.setAttribute('foo', 'bar');

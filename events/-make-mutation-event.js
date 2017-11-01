@@ -8,7 +8,23 @@ function getDataKey(eventType, defaultEventType) {
 	return eventType + defaultEventType + 'Data';
 }
 
-function makeMutationEvent(defaultEventType, subscription, dispatch, dispatchOnce) {
+function deleteTargetListeners (doc, docKey, docData, eventType, target, targetData) {
+	if (targetData.removeListener) {
+		targetData.removeListener();
+		targetData.removeListener = null;
+	}
+
+	docData['delete'](target);
+
+	if (docData.size === 0) {
+		domData.clean.call(doc, docKey);
+	}
+}
+
+function makeMutationEvent(defaultEventType, subscription, dispatch, options) {
+	var dispatchOnce = options.dispatchOnce;
+	var deleteDomData = options.deleteDomData;
+
 	var event = {
 		defaultEventType: defaultEventType,
 		addEventListener: function (target, eventType, handler) {
@@ -29,31 +45,44 @@ function makeMutationEvent(defaultEventType, subscription, dispatch, dispatchOnc
 				documentData.set(target, data);
 			}
 
-			var hasSubscription = data.listeners.has(handler);
-			if (hasSubscription) {
+			var isDuplicateHandler = data.listeners.has(handler);
+			if (isDuplicateHandler) {
 				return;
 			}
 
 			if (data.listeners.size === 0) {
 				var domEvents = this;
 				var removeListener = subscription(target, function (mutation) {
-					dispatch(domEvents.dispatch, target, eventType, mutation);
+					var didDispatch = dispatch(domEvents.dispatch, target, eventType, mutation);
+					if (!didDispatch) {
+						return;
+					}
+
 					if (dispatchOnce) {
 						// NOTE: The event will only ever be fired once
 						// This is for backwards-compatibility with can-util/dom/events
 						data.listeners.forEach(function (handler) {
-							event.removeEventListener(target, eventType, handler);
+							target.removeEventListener(eventType, handler);
 						});
+
+						deleteTargetListeners(doc, dataKey, documentData, eventType, target, data);
+					}
+
+					if (deleteDomData) {
+						// NOTE: The event will remove ALL dom data on the target
+						// This is for backwards-compatibility with can-util/dom/events
+						domData['delete'].call(target);
 					}
 				});
 				data.removeListener = removeListener;
 			}
 
 			data.listeners.add(handler);
-
 			target.addEventListener(eventType, handler);
 		},
 		removeEventListener: function (target, eventType, handler) {
+			target.removeEventListener(eventType, handler);
+
 			var dataKey = getDataKey(eventType, defaultEventType);
 			var doc = target.ownerDocument;
 			var documentData = domData.get.call(doc, dataKey);
@@ -69,18 +98,8 @@ function makeMutationEvent(defaultEventType, subscription, dispatch, dispatchOnc
 			data.listeners['delete'](handler);
 
 			if (data.listeners.size === 0) {
-				data.removeListener();
-
-				if (data.size === 0) {
-					documentData['delete'](target);
-
-					if (documentData.size === 0) {
-						domData.clean.call(doc, dataKey);
-					}
-				}
+				deleteTargetListeners(doc, dataKey, documentData, eventType, target, data);
 			}
-
-			target.removeEventListener(eventType, handler);
 		}
 	};
 

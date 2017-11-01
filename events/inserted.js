@@ -4,7 +4,10 @@ var makeMutationEvent = require('./-make-mutation-event');
 var onNodeInsertion = require('../can-dom-mutate').onNodeInsertion;
 
 function dispatch(dispatchEvent, target, eventType) {
-	dispatchEvent(target, eventType, false);
+	if (target.ownerDocument.contains(target)) {
+		dispatchEvent(target, eventType, false);
+		return true;
+	}
 }
 
 /**
@@ -28,4 +31,6 @@ function dispatch(dispatchEvent, target, eventType) {
 *
 * mutate.appendChild.call(document.body, foo); // inserted event fired
 */
-module.exports = makeMutationEvent('inserted', onNodeInsertion, dispatch, true);
+module.exports = makeMutationEvent('inserted', onNodeInsertion, dispatch, {
+	dispatchOnce: true
+});
