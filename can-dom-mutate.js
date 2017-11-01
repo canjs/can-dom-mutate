@@ -111,7 +111,6 @@ function dispatch(listenerKey, documentDataKey, isAttributes) {
 			var event = events[e];
 			var target = isAttributes ? event.node : event;
 
-
 			var targetListeners = getTargetListeners(target, listenerKey);
 			if (targetListeners) {
 				for (var t = 0; t < targetListeners.length; t++) {
@@ -120,7 +119,7 @@ function dispatch(listenerKey, documentDataKey, isAttributes) {
 			}
 
 			if (!documentDataKey) {
-				return;
+				continue;
 			}
 
 			var documentListeners = getDocumentListeners(target, documentDataKey);
@@ -164,18 +163,39 @@ function observeMutations(target, observerKey, config, handler) {
 	};
 }
 
+
+function getSubTreeNodes(element) {
+	if (!element.getElementsByTagName) {
+		return [];
+	}
+	var nodes = element.getElementsByTagName('*');
+	return Array.prototype.slice.call(nodes, 0);
+}
+
 function handleTreeMutations(mutations) {
 	mutations.forEach(function (mutation) {
 		var addedNodes = mutation.addedNodes;
 		var addedCount = addedNodes.length;
 		for (var a = 0; a < addedCount; a++) {
-			domMutate.dispatchNodeInsertion(addedNodes[a]);
+			var addedNode = addedNodes[a];
+			domMutate.dispatchNodeInsertion(addedNode);
+			var addedChildNodes = getSubTreeNodes(addedNode);
+			var addedChildCount = addedChildNodes.length;
+			for (var ac = 0; ac < addedChildCount; ac++) {
+				domMutate.dispatchNodeRemoval(addedChildNodes[ac]);
+			}
 		}
 
 		var removedNodes = mutation.removedNodes;
 		var removedCount = removedNodes.length;
 		for (var r = 0; r < removedCount; r++) {
-			domMutate.dispatchNodeRemoval(removedNodes[r]);
+			var removedNode = removedNodes[r];
+			domMutate.dispatchNodeRemoval(removedNode);
+			var removedChildNodes = getSubTreeNodes(removedNode);
+			var removedChildCount = removedChildNodes.length;
+			for (var rc = 0; rc < removedChildCount; rc++) {
+				domMutate.dispatchNodeRemoval(removedChildNodes[rc]);
+			}
 		}
 	});
 }

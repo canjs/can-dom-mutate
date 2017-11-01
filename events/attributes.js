@@ -10,6 +10,7 @@ function dispatch(dispatchEvent, target, eventType, changeset) {
 		oldValue: changeset.oldValue
 	};
 	dispatchEvent(target, eventData, false);
+	return true;
 }
 
 /**
@@ -35,4 +36,4 @@ function dispatch(dispatchEvent, target, eventType, changeset) {
 * domEvents.removeEventListener(el, "attributes", attributesHandler);
 * ```
 */
-module.exports = makeMutationEvent('attributes', onNodeAttributeChange, dispatch);
+module.exports = makeMutationEvent('attributes', onNodeAttributeChange, dispatch, {});
