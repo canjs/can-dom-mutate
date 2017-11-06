@@ -3,19 +3,11 @@
 var makeMutationEvent = require('./-make-mutation-event');
 var onNodeInsertion = require('../can-dom-mutate').onNodeInsertion;
 
-function dispatch(dispatchEvent, target, eventType) {
-	if (target.ownerDocument.contains(target)) {
-		dispatchEvent(target, eventType, false);
-		return true;
-	}
-}
-
 /**
 * @module {events} can-dom-mutate/events/inserted inserted
 * @parent can-dom-mutate/events
 *
 * This event fires when the bound element is added to the DOM.
-* This event is only dispatched once and then unbound.
 *
 * ```js
 * var domEvents = require('can-dom-events');
@@ -31,6 +23,4 @@ function dispatch(dispatchEvent, target, eventType) {
 *
 * mutate.appendChild.call(document.body, foo); // inserted event fired
 */
-module.exports = makeMutationEvent('inserted', onNodeInsertion, dispatch, {
-	dispatchOnce: true
-});
+module.exports = makeMutationEvent('inserted', onNodeInsertion);
