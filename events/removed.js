@@ -3,19 +3,11 @@
 var makeMutationEvent = require('./-make-mutation-event');
 var onNodeRemoval = require('../can-dom-mutate').onNodeRemoval;
 
-function dispatch(dispatchEvent, target, eventType) {
-	if (!target.ownerDocument.contains(target)) {
-		dispatchEvent(target, eventType, false);
-		return true;
-	}
-}
-
 /**
 * @module {events} can-dom-mutate/events/removed removed
 * @parent can-dom-mutate/events
 *
 * This event fires when the bound element is removed from the document.
-* This event is only dispatched once and then unbound.
 *
 * ```js
 * var domEvents = require('can-dom-events');
@@ -34,7 +26,4 @@ function dispatch(dispatchEvent, target, eventType) {
 *
 * mutate.removeChild.call(document.body, foo); // remove event fired
 */
-module.exports = makeMutationEvent('removed', onNodeRemoval, dispatch, {
-	dispatchOnce: true,
-	deleteDomData: true
-});
+module.exports = makeMutationEvent('removed', onNodeRemoval);

@@ -3,16 +3,6 @@
 var makeMutationEvent = require('./-make-mutation-event');
 var onNodeAttributeChange = require('../can-dom-mutate').onNodeAttributeChange;
 
-function dispatch(dispatchEvent, target, eventType, changeset) {
-	var eventData = {
-		type: eventType,
-		attributeName: changeset.attributeName,
-		oldValue: changeset.oldValue
-	};
-	dispatchEvent(target, eventData, false);
-	return true;
-}
-
 /**
 * @module {events} can-dom-mutate/events/attributes attributes
 * @parent can-dom-mutate/events
@@ -36,4 +26,4 @@ function dispatch(dispatchEvent, target, eventType, changeset) {
 * domEvents.removeEventListener(el, "attributes", attributesHandler);
 * ```
 */
-module.exports = makeMutationEvent('attributes', onNodeAttributeChange, dispatch, {});
+module.exports = makeMutationEvent('attributes', onNodeAttributeChange);

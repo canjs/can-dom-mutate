@@ -12,7 +12,8 @@ moduleMutationObserver('can-dom-mutate', function () {
 		var parent = testUtils.getFixture();
 		var child = document.createElement('div');
 
-		var undo = domMutate.onNodeInsertion(child, function (node) {
+		var undo = domMutate.onNodeInsertion(child, function (mutation) {
+			var node = mutation.target;
 			assert.equal(node, child, 'Node should be the inserted child');
 
 			undo();
@@ -27,7 +28,8 @@ moduleMutationObserver('can-dom-mutate', function () {
 		var parent = testUtils.getFixture();
 		var child = document.createElement('div');
 
-		var undo = domMutate.onNodeRemoval(child, function (node) {
+		var undo = domMutate.onNodeRemoval(child, function (mutation) {
+			var node = mutation.target;
 			assert.equal(node, child, 'Node should be the removed child');
 
 			undo();
@@ -44,10 +46,10 @@ moduleMutationObserver('can-dom-mutate', function () {
 		var attributeName = 'foo';
 		child.setAttribute(attributeName, 'bar');
 
-		var undo = domMutate.onNodeAttributeChange(child, function (changeset) {
-			assert.equal(changeset.node, child, 'Node should be the removed child');
-			assert.equal(changeset.attributeName, attributeName);
-			assert.equal(changeset.oldValue, 'bar');
+		var undo = domMutate.onNodeAttributeChange(child, function (mutation) {
+			assert.equal(mutation.target, child, 'Node should be the removed child');
+			assert.equal(mutation.attributeName, attributeName);
+			assert.equal(mutation.oldValue, 'bar');
 
 			undo();
 			done();
@@ -61,8 +63,8 @@ moduleMutationObserver('can-dom-mutate', function () {
 		var parent = testUtils.getFixture();
 		var child = document.createElement('div');
 
-		var undo = domMutate.onRemoval(document.documentElement, function (node) {
-			assert.equal(node, child, 'Node should be the removed child');
+		var undo = domMutate.onRemoval(document.documentElement, function (mutation) {
+			assert.equal(mutation.target, child, 'Node should be the removed child');
 
 			undo();
 			done();

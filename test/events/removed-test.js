@@ -24,10 +24,5 @@ moduleMutationObserver('can-dom-mutate/events/removed', function () {
 		});
 
 		domMutate.removeChild.call(parent, child);
-
-		// NOTE: This test also checks `removed` is only fired once.
-		// The following should not trigger a removed event.
-		parent.appendChild(child);
-		domMutate.removeChild.call(parent, child);
 	});
 });
