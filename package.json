@@ -40,7 +40,7 @@
   "scripts": {
     "install-canary": "npm install --no-shrinkwrap",
     "install-locked": "npm install",
-    "jshint": "jshint ./*.js ./events/*.js ./test/**/*.js --config",
+    "jshint": "jshint ./*.js ./test/*.js --config",
     "lint": "fixpack && npm run jshint",
     "preversion": "npm test",
     "test": "npm run lint && npm run testee",

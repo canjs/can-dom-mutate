@@ -10,14 +10,14 @@ var setImmediate = getRoot().setImmediate || function (cb) {
 	return setTimeout(cb, 0);
 };
 
-var domMutate;
+var util = require('./-util');
+var getDocument = util.getDocument;
+var eliminate = util.eliminate;
+var subscription = util.subscription;
+var isDocumentElement = util.isDocumentElement;
+var getAllNodes = util.getAllNodes;
 
-function eliminate(array, item) {
-	var index = array.indexOf(item);
-	if (index >= 0) {
-		array.splice(index, 1);
-	}
-}
+var domMutate;
 
 function batch(processBatchItems, shouldDeduplicate) {
 	var waitingBatch = [];
@@ -58,14 +58,6 @@ function batch(processBatchItems, shouldDeduplicate) {
 			});
 		}
 	};
-}
-
-function getDocument(target) {
-	return target.ownerDocument || target.document || target;
-}
-
-function isDocumentElement (node) {
-	return getDocument(node).documentElement === node;
 }
 
 function getDocumentListeners (target, key) {
@@ -263,22 +255,6 @@ var attributeMutationConfig = {
 	attributeOldValue: true
 };
 
-function subscription (fn) {
-	return function _subscription () {
-		var disposal = fn.apply(this, arguments);
-		var isDisposed = false;
-		return function _disposal () {
-			if (isDisposed) {
-				var fnName = fn.name || fn.displayName || 'an anonymous function';
-				var message = 'Disposal function returned by ' + fnName + ' called more than once.';
-				throw new Error(message);
-			}
-			disposal.apply(this, arguments);
-			isDisposed = true;
-		};
-	};
-}
-
 function addNodeListener(listenerKey, observerKey, isAttributes) {
 	return subscription(function _addNodeListener(target, listener) {
 		var stopObserving;
@@ -331,31 +307,6 @@ function addGlobalListener(globalDataKey, addNodeListener) {
 			}
 		};
 	});
-}
-
-function toNodes(child) {
-	var children = [];
-	var isFragment = child.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
-	if (isFragment) {
-		var node = child.firstChild;
-		while (node) {
-			children.push(node);
-			node = node.nextSibling;
-		}
-	} else {
-		children.push(child);
-	}
-
-	var cLen = children.length;
-	for (var c = 0; c < cLen; c++) {
-		var element = children[c];
-		if (element.getElementsByTagName) {
-			var nodes = element.getElementsByTagName('*');
-			push.apply(children, nodes);
-		}
-	}
-
-	return children;
 }
 
 function toMutationEvents (nodes) {
@@ -425,7 +376,7 @@ domMutate = {
 	* @param {function} callback The optional callback called after the mutation is dispatched.
 	*/
 	dispatchNodeInsertion: function (node, callback) {
-		var events = toMutationEvents(toNodes(node));
+		var events = toMutationEvents(getAllNodes(node));
 		dispatchInsertion(events, callback);
 	},
 
@@ -440,7 +391,7 @@ domMutate = {
 	* @param {function} callback The optional callback called after the mutation is dispatched.
 	*/
 	dispatchNodeRemoval: function (node, callback) {
-		var events = toMutationEvents(toNodes(node));
+		var events = toMutationEvents(getAllNodes(node));
 		dispatchRemoval(events, callback);
 	},
 
