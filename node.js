@@ -2,28 +2,10 @@
 
 var globals = require('can-globals');
 var domMutate = require('./can-dom-mutate');
+var util = require('./-util');
 
-function isFragment (node) {
-	return !!(node && node.nodeType === 11);
-}
-
-function getChildren (parentNode) {
-	var nodes = [];
-	var node = parentNode.firstChild;
-	while (node) {
-		nodes.push(node);
-		node = node.siblingNode;
-	}
-	return nodes;
-}
-
-function isInDocument (node) {
-	var root = node.ownerDocument.documentElement;
-	if (root === node) {
-		return true;
-	}
-	return root.contains(node);
-}
+var isInDocument = util.isInDocument;
+var getParents = util.getParents;
 
 var synthetic = {
 	dispatchNodeInsertion: function (container, node) {
@@ -40,13 +22,7 @@ var synthetic = {
 
 var compat = {
 	replaceChild: function (newChild, oldChild) {
-		var newChildren;
-		if (isFragment(newChild)) {
-			newChildren = getChildren(newChild);
-		} else {
-			newChildren = [newChild];
-		}
-
+		var newChildren = getParents(newChild);
 		var result = this.replaceChild(newChild, oldChild);
 		synthetic.dispatchNodeRemoval(this, oldChild);
 		for (var i = 0; i < newChildren.length; i++) {
@@ -74,12 +50,7 @@ compatData.forEach(function (pair) {
 	var nodeMethod = pair[0];
 	var dispatchMethod = 'dispatchNode' + pair[1];
 	compat[nodeMethod] = function (node) {
-		var nodes;
-		if (isFragment(node)) {
-			nodes = getChildren(node);
-		} else {
-			nodes = [node];
-		}
+		var nodes = getParents(node);
 		var result = this[nodeMethod].apply(this, arguments);
 		for (var i = 0; i < nodes.length; i++) {
 			synthetic[dispatchMethod](this, nodes[i]);
