@@ -122,8 +122,8 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 
 	test('appendChild should dispatch fragment children to dispatchNodeInserted', function (assert) {
 		assert.expect(2);
-		const parent = testUtils.getFixture();
-		const fragTest = getFragmentInsertionTest();
+		var parent = testUtils.getFixture();
+		var fragTest = getFragmentInsertionTest();
 		fragTest.check(assert);
 		node.appendChild.call(parent, fragTest.fragment);
 	});
@@ -148,11 +148,11 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 
 	test('insertBefore should dispatch fragment children to dispatchNodeInserted', function (assert) {
 		assert.expect(2);
-		const parent = testUtils.getFixture();
-		const sibling = document.createElement('div');
+		var parent = testUtils.getFixture();
+		var sibling = document.createElement('div');
 		parent.appendChild(sibling);
 
-		const fragTest = getFragmentInsertionTest();
+		var fragTest = getFragmentInsertionTest();
 		fragTest.check(assert);
 		node.insertBefore.call(parent, fragTest.fragment, sibling);
 	});
@@ -204,14 +204,14 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 
 	test('replaceChild should dispatch fragment children to dispatchNodeInserted', function (assert) {
 		assert.expect(3);
-		const parent = testUtils.getFixture();
-		const sibling = document.createElement('div');
+		var parent = testUtils.getFixture();
+		var sibling = document.createElement('div');
 		parent.appendChild(sibling);
 
-		const fragTest = getFragmentInsertionTest();
+		var fragTest = getFragmentInsertionTest();
 		fragTest.check(assert);
 
-		const undoRemoval = mock(domMutate, 'dispatchNodeRemoval', function (node) {
+		var undoRemoval = mock(domMutate, 'dispatchNodeRemoval', function (node) {
 			assert.equal(node, sibling, 'sibling should be removed');
 			undoRemoval();
 		});
