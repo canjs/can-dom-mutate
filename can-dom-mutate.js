@@ -182,8 +182,8 @@ function observeMutations(target, observerKey, config, handler) {
 	var setupObserver = function () {
 		var MutationObserver = getMutationObserver();
 		if (MutationObserver) {
-			const Node = getRoot().Node;
-			const isRealNode = !!(Node && target instanceof Node);
+			var Node = getRoot().Node;
+			var isRealNode = !!(Node && target instanceof Node);
 			if (isRealNode) {
 				var targetObserver = new MutationObserver(handler);
 				targetObserver.observe(target, config);
