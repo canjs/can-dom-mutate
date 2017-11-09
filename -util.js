@@ -32,7 +32,7 @@ function getChildren (parentNode) {
 	var node = parentNode.firstChild;
 	while (node) {
 		nodes.push(node);
-		node = node.siblingNode;
+		node = node.nextSibling;
 	}
 	return nodes;
 }

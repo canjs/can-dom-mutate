@@ -58,6 +58,47 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.setAttribute.call(child, attributeName, 'baz');
 	});
 
+	test('onInserted should be called when any node is inserted', function (assert) {
+		var done = assert.async();
+		var parent = testUtils.getFixture();
+		var child = document.createElement('div');
+
+		var undo = domMutate.onInsertion(document.documentElement, function (mutation) {
+			assert.equal(mutation.target, child, 'Node should be the inserted child');
+
+			undo();
+			done();
+		});
+
+		node.appendChild.call(parent, child);
+	});
+
+	test('onInserted should be called with inserted fragment subtree', function (assert) {
+		assert.expect(3);
+		var done = assert.async();
+		var parent = testUtils.getFixture();
+		var fragment = new DocumentFragment();
+		var child1 = document.createElement('div');
+		var child2 = document.createElement('div');
+		var grandchild = document.createElement('div');
+		fragment.appendChild(child1);
+		fragment.appendChild(child2);
+		child2.appendChild(grandchild);
+
+		var dispatchCount = 0;
+		var nodes = [child1, child2, grandchild];
+		var undo = domMutate.onInsertion(document.documentElement, function (mutation) {
+			dispatchCount++;
+			assert.ok(nodes.indexOf(mutation.target) !== -1, 'fragment node should be dispatched');
+			if (dispatchCount >= nodes.length) {
+				undo();
+				done();
+			}
+		});
+
+		node.appendChild.call(parent, fragment);
+	});
+
 	test('onRemoval should be called when any node is removed', function (assert) {
 		var done = assert.async();
 		var parent = testUtils.getFixture();
