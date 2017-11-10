@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "can-cid": "^1.1.1",
-    "can-dom-data-state": "^0.1.1",
+    "can-dom-data-state": "^0.2.0",
     "can-dom-events": "^1.0.2",
     "can-globals": "^0.2.3"
   },
