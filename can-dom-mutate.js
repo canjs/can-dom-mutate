@@ -108,7 +108,7 @@ function removeTargetListener (target, key, listener) {
 		return;
 	}
 	eliminate(targetListeners, listener);
-	if (targetListeners.size === 0) {
+	if (targetListeners.length === 0) {
 		targetListenersMap['delete'](target);
 		if (targetListenersMap.size === 0) {
 			domData.clean.call(doc, key);
@@ -245,7 +245,7 @@ function addNodeListener(listenerKey, observerKey, isAttributes) {
 		addTargetListener(target, listenerKey, listener);
 		return function removeNodeListener() {
 			stopObserving();
-			removeTargetListener(target, listenerKey, listenerKey);
+			removeTargetListener(target, listenerKey, listener);
 		};
 	});
 }
