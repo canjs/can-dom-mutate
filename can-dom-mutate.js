@@ -3,6 +3,7 @@
 var push = Array.prototype.push;
 var domData = require('can-dom-data-state');
 var CIDMap = require('can-cid/map/map');
+var CIDSet = require('can-cid/set/set');
 var globals = require('can-globals');
 var getRoot = require('can-globals/global/global');
 var getMutationObserver = require('can-globals/mutation-observer/mutation-observer');
@@ -22,16 +23,16 @@ var domMutate;
 function batch(processBatchItems, shouldDeduplicate) {
 	var waitingBatch = [];
 	var waitingCalls = [];
-	var dispatchMap = new CIDMap();
+	var dispatchSet = new CIDSet();
 	var isPrimed = false;
 	return function batchAdd(items, callback) {
 		if (shouldDeduplicate) {
 			for (var i = 0; i < items.length; i++) {
 				var item = items[i];
 				var target = item.target;
-				if (!dispatchMap.get(target)) {
+				if (!dispatchSet.has(target)) {
 					waitingBatch.push(item);
-					dispatchMap.set(target, true);
+					dispatchSet.add(target);
 				}
 			}
 		} else {
@@ -49,12 +50,15 @@ function batch(processBatchItems, shouldDeduplicate) {
 				waitingBatch = [];
 				var currentCalls = waitingCalls;
 				waitingCalls = [];
-				dispatchMap.clear();
+				if (shouldDeduplicate) {
+					dispatchSet.clear();
+				}
 				isPrimed = false;
 				processBatchItems(currentBatch);
-				currentCalls.forEach(function (callback) {
-					callback();
-				});
+				var callCount = currentCalls.length;
+				for (var c = 0; c < callCount; c++) {
+					currentCalls[c]();
+				}
 			});
 		}
 	};
@@ -140,37 +144,6 @@ function dispatch(listenerKey, documentDataKey) {
 }
 
 function observeMutations(target, observerKey, config, handler) {
-	var MutationObserver = getMutationObserver();
-	if (!MutationObserver) {
-		return function () {
-		};
-	}
-
-	var observerData = domData.get.call(target, observerKey);
-	if (!observerData) {
-		var targetObserver = new MutationObserver(handler);
-		targetObserver.observe(target, config);
-		observerData = {
-			observer: targetObserver,
-			observingCount: 0
-		};
-		domData.set.call(target, observerKey, observerData);
-	}
-
-	observerData.observingCount++;
-	return function stopObservingMutations() {
-		var observerData = domData.get.call(target, observerKey);
-		if (observerData) {
-			observerData.observingCount--;
-			if (observerData.observingCount <= 0) {
-				observerData.observer.disconnect();
-				domData.clean.call(target, observerKey);
-			}
-		}
-	};
-}
-
-function observeMutations(target, observerKey, config, handler) {
 	var observerData = domData.get.call(target, observerKey);
 	if (!observerData) {
 		observerData = {
@@ -219,7 +192,10 @@ function observeMutations(target, observerKey, config, handler) {
 }
 
 function handleTreeMutations(mutations) {
-	mutations.forEach(function (mutation) {
+	var mutationCount = mutations.length;
+	for (var m = 0; m < mutationCount; m++) {
+		var mutation = mutations[m];
+
 		var addedNodes = mutation.addedNodes;
 		var addedCount = addedNodes.length;
 		for (var a = 0; a < addedCount; a++) {
@@ -231,18 +207,20 @@ function handleTreeMutations(mutations) {
 		for (var r = 0; r < removedCount; r++) {
 			domMutate.dispatchNodeRemoval(removedNodes[r]);
 		}
-	});
+	}
 }
 
 function handleAttributeMutations(mutations) {
-	mutations.forEach(function (mutation) {
+	var mutationCount = mutations.length;
+	for (var m = 0; m < mutationCount; m++) {
+		var mutation = mutations[m];
 		if (mutation.type === 'attributes') {
 			var node = mutation.target;
 			var attributeName = mutation.attributeName;
 			var oldValue = mutation.oldValue;
 			domMutate.dispatchNodeAttributeChange(node, attributeName, oldValue);
 		}
-	});
+	}
 }
 
 var treeMutationConfig = {
