@@ -323,7 +323,7 @@ var addNodeAttributeChangeListener = addNodeListener(attributeChangeDataKey, att
 // global listeners
 var addInsertionListener = addGlobalListener(
 	documentInsertionDataKey,
-	addNodeRemovalListener
+	addNodeInsertionListener
 );
 var addRemovalListener = addGlobalListener(
 	documentRemovalDataKey,
