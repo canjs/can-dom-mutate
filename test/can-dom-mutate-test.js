@@ -79,8 +79,11 @@ moduleMutationObserver('can-dom-mutate', function () {
 		var parent = testUtils.getFixture();
 		var fragment = new DocumentFragment();
 		var child1 = document.createElement('div');
+		child1.id = 'child1';
 		var child2 = document.createElement('div');
+		child2.id = 'child2';
 		var grandchild = document.createElement('div');
+		grandchild.id = 'grandchild';
 		fragment.appendChild(child1);
 		fragment.appendChild(child2);
 		child2.appendChild(grandchild);
@@ -88,11 +91,22 @@ moduleMutationObserver('can-dom-mutate', function () {
 		var dispatchCount = 0;
 		var nodes = [child1, child2, grandchild];
 		var undo = domMutate.onInsertion(document.documentElement, function (mutation) {
-			dispatchCount++;
-			assert.ok(nodes.indexOf(mutation.target) !== -1, 'fragment node should be dispatched');
-			if (dispatchCount >= nodes.length) {
-				undo();
-				done();
+			var target = mutation.target;
+			if (nodes.indexOf(target) !== -1) {
+				dispatchCount++;
+				if (target === child1) {
+					assert.ok(true, 'child1 dispatched');
+				}
+				if (target === child2) {
+					assert.ok(true, 'child2 dispatched');
+				}
+				if (target === grandchild) {
+					assert.ok(true, 'grandchild dispatched');
+				}
+				if (dispatchCount >= nodes.length) {
+					undo();
+					done();
+				}
 			}
 		});
 
