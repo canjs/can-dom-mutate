@@ -51,7 +51,7 @@ function batch(processBatchItems, shouldDeduplicate) {
 				var currentCalls = waitingCalls;
 				waitingCalls = [];
 				if (shouldDeduplicate) {
-					dispatchSet.clear();
+					dispatchSet = new CIDSet();
 				}
 				isPrimed = false;
 				processBatchItems(currentBatch);
