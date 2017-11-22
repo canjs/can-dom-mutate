@@ -2,14 +2,10 @@
 
 var globals = require('can-globals');
 var domMutate = require('./can-dom-mutate');
+var util = require('./-util');
 
-function isInDocument (node) {
-	var root = node.ownerDocument.documentElement;
-	if (root === node) {
-		return true;
-	}
-	return root.contains(node);
-}
+var isInDocument = util.isInDocument;
+var getParents = util.getParents;
 
 var synthetic = {
 	dispatchNodeInsertion: function (container, node) {
@@ -26,15 +22,21 @@ var synthetic = {
 
 var compat = {
 	replaceChild: function (newChild, oldChild) {
+		var newChildren = getParents(newChild);
 		var result = this.replaceChild(newChild, oldChild);
 		synthetic.dispatchNodeRemoval(this, oldChild);
-		synthetic.dispatchNodeInsertion(this, newChild);
+		for (var i = 0; i < newChildren.length; i++) {
+			synthetic.dispatchNodeInsertion(this, newChildren[i]);
+		}
 		return result;
 	},
 	setAttribute: function (name, value) {
 		var oldAttributeValue = this.getAttribute(name);
 		var result = this.setAttribute(name, value);
-		domMutate.dispatchNodeAttributeChange(this, name, oldAttributeValue);
+		var newAttributeValue = this.getAttribute(name);
+		if (oldAttributeValue !== newAttributeValue) {
+			domMutate.dispatchNodeAttributeChange(this, name, oldAttributeValue);
+		}
 		return result;
 	}
 };
@@ -48,8 +50,11 @@ compatData.forEach(function (pair) {
 	var nodeMethod = pair[0];
 	var dispatchMethod = 'dispatchNode' + pair[1];
 	compat[nodeMethod] = function (node) {
+		var nodes = getParents(node);
 		var result = this[nodeMethod].apply(this, arguments);
-		synthetic[dispatchMethod](this, node);
+		for (var i = 0; i < nodes.length; i++) {
+			synthetic[dispatchMethod](this, nodes[i]);
+		}
 		return result;
 	};
 });

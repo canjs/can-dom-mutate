@@ -1,28 +1,43 @@
 'use strict';
 
+var push = Array.prototype.push;
 var domData = require('can-dom-data-state');
 var CIDMap = require('can-cid/map/map');
-var global = require('can-globals/global/global')();
-var setImmediate = global.setImmediate || function (cb) {
+var CIDSet = require('can-cid/set/set');
+var globals = require('can-globals');
+var getRoot = require('can-globals/global/global');
+var getMutationObserver = require('can-globals/mutation-observer/mutation-observer');
+var setImmediate = getRoot().setImmediate || function (cb) {
 	return setTimeout(cb, 0);
 };
-var getMutationObserver = require('can-globals/mutation-observer/mutation-observer');
+
+var util = require('./-util');
+var getDocument = util.getDocument;
+var eliminate = util.eliminate;
+var subscription = util.subscription;
+var isDocumentElement = util.isDocumentElement;
+var getAllNodes = util.getAllNodes;
 
 var domMutate;
 
-function eliminate(array, item) {
-	var index = array.indexOf(item);
-	if (index >= 0) {
-		array.splice(index, 1);
-	}
-}
-
-function batch(processBatchItems) {
+function batch(processBatchItems, shouldDeduplicate) {
 	var waitingBatch = [];
 	var waitingCalls = [];
+	var dispatchSet = new CIDSet();
 	var isPrimed = false;
 	return function batchAdd(items, callback) {
-		waitingBatch = waitingBatch.concat(items);
+		if (shouldDeduplicate) {
+			for (var i = 0; i < items.length; i++) {
+				var item = items[i];
+				var target = item.target;
+				if (!dispatchSet.has(target)) {
+					waitingBatch.push(item);
+					dispatchSet.add(target);
+				}
+			}
+		} else {
+			push.apply(waitingBatch, items);
+		}
 		if (callback) {
 			waitingCalls.push(callback);
 		}
@@ -35,22 +50,18 @@ function batch(processBatchItems) {
 				waitingBatch = [];
 				var currentCalls = waitingCalls;
 				waitingCalls = [];
+				if (shouldDeduplicate) {
+					dispatchSet = new CIDSet();
+				}
 				isPrimed = false;
 				processBatchItems(currentBatch);
-				currentCalls.forEach(function (callback) {
-					callback();
-				});
+				var callCount = currentCalls.length;
+				for (var c = 0; c < callCount; c++) {
+					currentCalls[c]();
+				}
 			});
 		}
 	};
-}
-
-function getDocument(target) {
-	return target.ownerDocument || target.document || target;
-}
-
-function isDocumentElement (node) {
-	return getDocument(node).documentElement === node;
 }
 
 function getDocumentListeners (target, key) {
@@ -97,7 +108,7 @@ function removeTargetListener (target, key, listener) {
 		return;
 	}
 	eliminate(targetListeners, listener);
-	if (targetListeners.size === 0) {
+	if (targetListeners.length === 0) {
 		targetListenersMap['delete'](target);
 		if (targetListenersMap.size === 0) {
 			domData.clean.call(doc, key);
@@ -105,12 +116,11 @@ function removeTargetListener (target, key, listener) {
 	}
 }
 
-function dispatch(listenerKey, documentDataKey, isAttributes) {
+function dispatch(listenerKey, documentDataKey) {
 	return function dispatchEvents(events) {
 		for (var e = 0; e < events.length; e++) {
 			var event = events[e];
-			var target = isAttributes ? event.node : event;
-
+			var target = event.target;
 
 			var targetListeners = getTargetListeners(target, listenerKey);
 			if (targetListeners) {
@@ -120,7 +130,7 @@ function dispatch(listenerKey, documentDataKey, isAttributes) {
 			}
 
 			if (!documentDataKey) {
-				return;
+				continue;
 			}
 
 			var documentListeners = getDocumentListeners(target, documentDataKey);
@@ -134,21 +144,35 @@ function dispatch(listenerKey, documentDataKey, isAttributes) {
 }
 
 function observeMutations(target, observerKey, config, handler) {
-	var MutationObserver = getMutationObserver();
-	if (!MutationObserver) {
-		return function () {
-		};
-	}
-
 	var observerData = domData.get.call(target, observerKey);
 	if (!observerData) {
-		var targetObserver = new MutationObserver(handler);
-		targetObserver.observe(target, config);
 		observerData = {
-			observer: targetObserver,
 			observingCount: 0
 		};
 		domData.set.call(target, observerKey, observerData);
+	}
+
+	var setupObserver = function () {
+		var MutationObserver = getMutationObserver();
+		if (MutationObserver) {
+			var Node = getRoot().Node;
+			var isRealNode = !!(Node && target instanceof Node);
+			if (isRealNode) {
+				var targetObserver = new MutationObserver(handler);
+				targetObserver.observe(target, config);
+				observerData.observer = targetObserver;
+			}
+		} else {
+			if (observerData.observer) {
+				observerData.observer.disconnect();
+				observerData.observer = null;
+			}
+		}
+	};
+
+	if (observerData.observingCount === 0) {
+		globals.onKeyValue('MutationObserver', setupObserver);
+		setupObserver();
 	}
 
 	observerData.observingCount++;
@@ -157,15 +181,21 @@ function observeMutations(target, observerKey, config, handler) {
 		if (observerData) {
 			observerData.observingCount--;
 			if (observerData.observingCount <= 0) {
-				observerData.observer.disconnect();
+				if (observerData.observer) {
+					observerData.observer.disconnect();
+				}
 				domData.clean.call(target, observerKey);
+				globals.offKeyValue('MutationObserver', setupObserver);
 			}
 		}
 	};
 }
 
 function handleTreeMutations(mutations) {
-	mutations.forEach(function (mutation) {
+	var mutationCount = mutations.length;
+	for (var m = 0; m < mutationCount; m++) {
+		var mutation = mutations[m];
+
 		var addedNodes = mutation.addedNodes;
 		var addedCount = addedNodes.length;
 		for (var a = 0; a < addedCount; a++) {
@@ -177,18 +207,20 @@ function handleTreeMutations(mutations) {
 		for (var r = 0; r < removedCount; r++) {
 			domMutate.dispatchNodeRemoval(removedNodes[r]);
 		}
-	});
+	}
 }
 
 function handleAttributeMutations(mutations) {
-	mutations.forEach(function (mutation) {
+	var mutationCount = mutations.length;
+	for (var m = 0; m < mutationCount; m++) {
+		var mutation = mutations[m];
 		if (mutation.type === 'attributes') {
 			var node = mutation.target;
 			var attributeName = mutation.attributeName;
 			var oldValue = mutation.oldValue;
 			domMutate.dispatchNodeAttributeChange(node, attributeName, oldValue);
 		}
-	});
+	}
 }
 
 var treeMutationConfig = {
@@ -200,22 +232,6 @@ var attributeMutationConfig = {
 	attributes: true,
 	attributeOldValue: true
 };
-
-function subscription (fn) {
-	return function _subscription () {
-		var disposal = fn.apply(this, arguments);
-		var isDisposed = false;
-		return function _disposal () {
-			if (isDisposed) {
-				var fnName = fn.name || fn.displayName || 'an anonymous function';
-				var message = 'Disposal function returned by ' + fnName + ' called more than once.';
-				throw new Error(message);
-			}
-			disposal.apply(this, arguments);
-			isDisposed = true;
-		};
-	};
-}
 
 function addNodeListener(listenerKey, observerKey, isAttributes) {
 	return subscription(function _addNodeListener(target, listener) {
@@ -229,7 +245,7 @@ function addNodeListener(listenerKey, observerKey, isAttributes) {
 		addTargetListener(target, listenerKey, listener);
 		return function removeNodeListener() {
 			stopObserving();
-			removeTargetListener(target, listenerKey, listenerKey);
+			removeTargetListener(target, listenerKey, listener);
 		};
 	});
 }
@@ -271,23 +287,12 @@ function addGlobalListener(globalDataKey, addNodeListener) {
 	});
 }
 
-function toNodes(child) {
-	var isFragment = child.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
-	if (!isFragment) {
-		return [child];
+function toMutationEvents (nodes) {
+	var events = [];
+	for (var i = 0; i < nodes.length; i++) {
+		events.push({target: nodes[i]});
 	}
-
-	var children = [];
-	var node = child.firstChild;
-	while (node) {
-		var nodes = toNodes(child);
-		for (var i = 0; i < nodes.length; i++) {
-			children.push(nodes[i]);
-		}
-		node = node.nextSibling;
-	}
-
-	return children;
+	return events;
 }
 
 var domMutationPrefix = 'domMutation';
@@ -298,15 +303,17 @@ var removalDataKey = domMutationPrefix + 'RemovalData';
 var attributeChangeDataKey = domMutationPrefix + 'AttributeChangeData';
 
 // document listener keys
+var documentInsertionDataKey = domMutationPrefix + 'DocumentInsertionData';
 var documentRemovalDataKey = domMutationPrefix + 'DocumentRemovalData';
+var documentAttributeChangeDataKey = domMutationPrefix + 'DocumentAttributeChangeData';
 
 // observer keys
 var treeDataKey = domMutationPrefix + 'TreeData';
 var attributeDataKey = domMutationPrefix + 'AttributeData';
 
-var dispatchInsertion = batch(dispatch(insertionDataKey));
-var dispatchRemoval = batch(dispatch(removalDataKey, documentRemovalDataKey));
-var dispatchAttributeChange = batch(dispatch(attributeChangeDataKey, null, true));
+var dispatchInsertion = batch(dispatch(insertionDataKey, documentInsertionDataKey), true);
+var dispatchRemoval = batch(dispatch(removalDataKey, documentRemovalDataKey), true);
+var dispatchAttributeChange = batch(dispatch(attributeChangeDataKey, documentAttributeChangeDataKey));
 
 // node listeners
 var addNodeInsertionListener = addNodeListener(insertionDataKey, treeDataKey);
@@ -314,9 +321,17 @@ var addNodeRemovalListener = addNodeListener(removalDataKey, treeDataKey);
 var addNodeAttributeChangeListener = addNodeListener(attributeChangeDataKey, attributeDataKey, true);
 
 // global listeners
+var addInsertionListener = addGlobalListener(
+	documentInsertionDataKey,
+	addNodeInsertionListener
+);
 var addRemovalListener = addGlobalListener(
 	documentRemovalDataKey,
 	addNodeRemovalListener
+);
+var addAttributeChangeListener = addGlobalListener(
+	documentAttributeChangeDataKey,
+	addNodeAttributeChangeListener
 );
 
 /**
@@ -339,7 +354,8 @@ domMutate = {
 	* @param {function} callback The optional callback called after the mutation is dispatched.
 	*/
 	dispatchNodeInsertion: function (node, callback) {
-		dispatchInsertion(toNodes(node), callback);
+		var events = toMutationEvents(getAllNodes(node));
+		dispatchInsertion(events, callback);
 	},
 
 	/**
@@ -353,7 +369,8 @@ domMutate = {
 	* @param {function} callback The optional callback called after the mutation is dispatched.
 	*/
 	dispatchNodeRemoval: function (node, callback) {
-		dispatchRemoval(toNodes(node), callback);
+		var events = toMutationEvents(getAllNodes(node));
+		dispatchRemoval(events, callback);
 	},
 
 	/**
@@ -363,17 +380,17 @@ domMutate = {
 	*
 	* @signature `dispatchNodeAttributeChange( node, attributeName, oldValue [, callback ] )`
 	* @parent can-dom-mutate.static
-	* @param {Node} node The node on which to dispatch an attribute change mutation.
+	* @param {Node} target The node on which to dispatch an attribute change mutation.
 	* @param {String} attributeName The attribute name whose value has changed.
 	* @param {String} oldValue The attribute value before the change.
 	* @param {function} callback The optional callback called after the mutation is dispatched.
 	*/
-	dispatchNodeAttributeChange: function (node, attributeName, oldValue, callback) {
-		dispatchAttributeChange({
-			node: node,
+	dispatchNodeAttributeChange: function (target, attributeName, oldValue, callback) {
+		dispatchAttributeChange([{
+			target: target,
 			attributeName: attributeName,
 			oldValue: oldValue
-		}, callback);
+		}], callback);
 	},
 
 	/**
@@ -420,13 +437,39 @@ domMutate = {
 	*
 	* Listen for removal mutations on any node within the documentElement.
 	*
-	* @signature `onRemoval( node, callback )`
+	* @signature `onRemoval( documentElement, callback )`
 	* @parent can-dom-mutate.static
-	* @param {Node} documentElement The doucmentElement on which to listen for removal mutations.
+	* @param {Node} documentElement The documentElement on which to listen for removal mutations.
 	* @param {function} callback The callback called when a removal mutation is dispatched.
 	* @return {function} The callback to remove the mutation listener.
 	*/
-	onRemoval: addRemovalListener
+	onRemoval: addRemovalListener,
+
+	/**
+	* @function can-dom-mutate.onInsertion onInsertion
+	*
+	* Listen for insertion mutations on any node within the documentElement.
+	*
+	* @signature `onInsertion( documentElement, callback )`
+	* @parent can-dom-mutate.static
+	* @param {Node} documentElement The documentElement on which to listen for removal mutations.
+	* @param {function} callback The callback called when a insertion mutation is dispatched.
+	* @return {function} The callback to remove the mutation listener.
+	*/
+	onInsertion: addInsertionListener,
+
+	/**
+	* @function can-dom-mutate.onAttributeChange onAttributeChange
+	*
+	* Listen for attribute change mutations on any node within the documentElement.
+	*
+	* @signature `onAttributeChange( documentElement, callback )`
+	* @parent can-dom-mutate.static
+	* @param {Node} documentElement The documentElement on which to listen for removal mutations.
+	* @param {function} callback The callback called when an attribute change mutation is dispatched.
+	* @return {function} The callback to remove the mutation listener.
+	*/
+	onAttributeChange: addAttributeChangeListener
 };
 
 module.exports = domMutate;

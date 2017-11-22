@@ -95,6 +95,39 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 		node.appendChild.call(parent, child);
 	});
 
+	function getFragmentInsertionTest () {
+		var fragment = new DocumentFragment();
+		var child1 = document.createElement('div');
+		var child2 = document.createElement('div');
+		var grandchild = document.createElement('div');
+		fragment.appendChild(child1);
+		fragment.appendChild(child2);
+		child2.appendChild(grandchild);
+
+		return {
+			fragment: fragment,
+			check: function (assert) {
+				var nodes = [child1, child2];
+				var dispatches = 0;
+				var undoInsertion = mock(domMutate, 'dispatchNodeInsertion', function (node) {
+					dispatches++;
+					assert.ok(nodes.indexOf(node) !== -1, 'child node added');
+					if (dispatches >= nodes.length) {
+						undoInsertion();
+					}
+				});
+			}
+		};
+	}
+
+	test('appendChild should dispatch fragment children to dispatchNodeInserted', function (assert) {
+		assert.expect(2);
+		var parent = testUtils.getFixture();
+		var fragTest = getFragmentInsertionTest();
+		fragTest.check(assert);
+		node.appendChild.call(parent, fragTest.fragment);
+	});
+
 	test('insertBefore should call domMutate.dispatchNodeInsertion', function (assert) {
 		var done = assert.async();
 		var parent = testUtils.getFixture();
@@ -111,6 +144,17 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 
 		parent.appendChild(sibling);
 		node.insertBefore.call(parent, child, sibling);
+	});
+
+	test('insertBefore should dispatch fragment children to dispatchNodeInserted', function (assert) {
+		assert.expect(2);
+		var parent = testUtils.getFixture();
+		var sibling = document.createElement('div');
+		parent.appendChild(sibling);
+
+		var fragTest = getFragmentInsertionTest();
+		fragTest.check(assert);
+		node.insertBefore.call(parent, fragTest.fragment, sibling);
 	});
 
 	test('removeChild should call domMutate.dispatchNodeRemoval', function (assert) {
@@ -156,6 +200,23 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 
 		parent.appendChild(sibling);
 		node.replaceChild.call(parent, child, sibling);
+	});
+
+	test('replaceChild should dispatch fragment children to dispatchNodeInserted', function (assert) {
+		assert.expect(3);
+		var parent = testUtils.getFixture();
+		var sibling = document.createElement('div');
+		parent.appendChild(sibling);
+
+		var fragTest = getFragmentInsertionTest();
+		fragTest.check(assert);
+
+		var undoRemoval = mock(domMutate, 'dispatchNodeRemoval', function (node) {
+			assert.equal(node, sibling, 'sibling should be removed');
+			undoRemoval();
+		});
+
+		node.replaceChild.call(parent, fragTest.fragment, sibling);
 	});
 
 	test('setAttribute should call domMutate.dispatchNodeAttributeChange', function (assert) {
