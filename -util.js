@@ -16,7 +16,8 @@ function isInDocument (node) {
 }
 
 function getDocument(target) {
-	return target.ownerDocument || target.document || target;
+	var doc = target.ownerDocument || target.document;
+	return doc ? doc.documentElement || doc : target;
 }
 
 function isDocumentElement (node) {
