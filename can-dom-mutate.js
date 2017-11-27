@@ -18,7 +18,6 @@ function deleteRelatedData(node, key) {
 	return delete data[key];
 }
 
-
 var push = Array.prototype.push;
 var CIDMap = require('can-cid/map/map');
 var CIDSet = require('can-cid/set/set');
