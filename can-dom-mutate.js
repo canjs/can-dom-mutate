@@ -1,356 +1,70 @@
 'use strict';
-var dataStore = new WeakMap();
+var MutationObserver = require('mutation-observer');
 
-function getRelatedData(node, key) {
-	var data = dataStore.get(node);
-	if (data) {
-		return data[key];
-	}
-}
+var treeConfig = { childList: true, subtree: true };
+var attributeConfig = { attributes: true, attributeOldValue: true };
+var rootObserver; // singleton of RootObserver
 
-function setRelatedData(node, key, targetListenersMap) {
-	var data = dataStore.get(node) || dataStore.set(node, {}).get(node);
-	data[key] = targetListenersMap;
-}
-
-function deleteRelatedData(node, key) {
-	var data = dataStore.get(node);
-	return delete data[key];
-}
-
-
-var push = Array.prototype.push;
-var CIDMap = require('can-cid/map/map');
-var CIDSet = require('can-cid/set/set');
-var globals = require('can-globals');
-var getRoot = require('can-globals/global/global');
-var getMutationObserver = require('can-globals/mutation-observer/mutation-observer');
-var setImmediate = getRoot().setImmediate || function (cb) {
-	return setTimeout(cb, 0);
-};
-
-var util = require('./-util');
-var getDocument = util.getDocument;
-var eliminate = util.eliminate;
-var subscription = util.subscription;
-var isDocumentElement = util.isDocumentElement;
-var getAllNodes = util.getAllNodes;
-
-var domMutate;
-
-function batch(processBatchItems, shouldDeduplicate) {
-	var waitingBatch = [];
-	var waitingCalls = [];
-	var dispatchSet = new CIDSet();
-	var isPrimed = false;
-	return function batchAdd(items, callback) {
-		if (shouldDeduplicate) {
-			for (var i = 0; i < items.length; i++) {
-				var item = items[i];
-				var target = item.target;
-				if (!dispatchSet.has(target)) {
-					waitingBatch.push(item);
-					dispatchSet.add(target);
-				}
-			}
-		} else {
-			push.apply(waitingBatch, items);
-		}
-		if (callback) {
-			waitingCalls.push(callback);
-		}
-
-		var shouldPrime = !isPrimed && waitingBatch.length > 0;
-		if (shouldPrime) {
-			isPrimed = true;
-			setImmediate(function processBatch() {
-				var currentBatch = waitingBatch;
-				waitingBatch = [];
-				var currentCalls = waitingCalls;
-				waitingCalls = [];
-				if (shouldDeduplicate) {
-					dispatchSet = new CIDSet();
-				}
-				isPrimed = false;
-				processBatchItems(currentBatch);
-				var callCount = currentCalls.length;
-				for (var c = 0; c < callCount; c++) {
-					currentCalls[c]();
-				}
+function createMutationEvents(type) {
+	return function(node) {
+		var callbacks = rootObserver.subscriptions[type].get(node);
+		if (callbacks) {
+			callbacks.forEach(function(cb){
+				cb({
+					type: type,
+					target: node
+				});
 			});
 		}
 	};
 }
 
-function getDocumentListeners (target, key) {
-	var doc = getDocument(target);
-	var data = getRelatedData(doc, key);
-	if (data) {
-		return data.listeners;
-	}
-}
+function observeMutations(node, config, callback){
+	// create an observer instance
+	var observer = new MutationObserver(function(mutations) {
+		mutations.forEach(callback);
+	});
 
-function getTargetListeners (target, key) {
-	var doc = getDocument(target);
-	var targetListenersMap = getRelatedData(doc, key);
-	if (!targetListenersMap) {
-		return;
-	}
+	// pass in the target node, as well as the observer options
+	observer.observe(node, config);
 
-	return targetListenersMap.get(target);
-}
-
-function addTargetListener (target, key, listener) {
-	var doc = getDocument(target);
-	var targetListenersMap = getRelatedData(doc, key);
-	if (!targetListenersMap) {
-		targetListenersMap = new CIDMap();
-		setRelatedData(doc, key, targetListenersMap);
-	}
-	var targetListeners = targetListenersMap.get(target);
-	if (!targetListeners) {
-		targetListeners = [];
-		targetListenersMap.set(target, targetListeners);
-	}
-	targetListeners.push(listener);
-}
-
-function removeTargetListener (target, key, listener) {
-	var doc = getDocument(target);
-	var targetListenersMap = getRelatedData(doc, key);
-	if (!targetListenersMap) {
-		return;
-	}
-	var targetListeners = targetListenersMap.get(target);
-	if (!targetListeners) {
-		return;
-	}
-	eliminate(targetListeners, listener);
-	if (targetListeners.length === 0) {
-		targetListenersMap['delete'](target);
-		if (targetListenersMap.size === 0) {
-			deleteRelatedData(doc, key);
-		}
-	}
-}
-
-function dispatch(listenerKey, documentDataKey) {
-	return function dispatchEvents(events) {
-		for (var e = 0; e < events.length; e++) {
-			var event = events[e];
-			var target = event.target;
-
-			var targetListeners = getTargetListeners(target, listenerKey);
-			if (targetListeners) {
-				for (var t = 0; t < targetListeners.length; t++) {
-					targetListeners[t](event);
-				}
-			}
-
-			if (!documentDataKey) {
-				continue;
-			}
-
-			var documentListeners = getDocumentListeners(target, documentDataKey);
-			if (documentListeners) {
-				for (var l = 0; l < documentListeners.length; l++) {
-					documentListeners[l](event);
-				}
-			}
-		}
+	return function() {
+		observer.disconnect();
 	};
 }
 
-function observeMutations(target, observerKey, config, handler) {
-	var observerData = getRelatedData(target, observerKey);
-	if (!observerData) {
-		observerData = {
-			observingCount: 0
-		};
-		setRelatedData(target, observerKey, observerData);
-	}
-
-	var setupObserver = function () {
-		var MutationObserver = getMutationObserver();
-		if (MutationObserver) {
-			var Node = getRoot().Node;
-			var isRealNode = !!(Node && target instanceof Node);
-			if (isRealNode) {
-				var targetObserver = new MutationObserver(handler);
-				targetObserver.observe(target, config);
-				observerData.observer = targetObserver;
-			}
-		} else {
-			if (observerData.observer) {
-				observerData.observer.disconnect();
-				observerData.observer = null;
-			}
-		}
+function RootObserver() {
+	this.subscriptions = {
+		"inserted": new WeakMap(),
+		"removed": new WeakMap()
 	};
-
-	if (observerData.observingCount === 0) {
-		globals.onKeyValue('MutationObserver', setupObserver);
-		setupObserver();
-	}
-
-	observerData.observingCount++;
-	return function stopObservingMutations() {
-		var observerData = getRelatedData(target, observerKey);
-		if (observerData) {
-			observerData.observingCount--;
-			if (observerData.observingCount <= 0) {
-				if (observerData.observer) {
-					observerData.observer.disconnect();
-				}
-				deleteRelatedData(target, observerKey);
-				globals.offKeyValue('MutationObserver', setupObserver);
-			}
-		}
-	};
-}
-
-function handleTreeMutations(mutations) {
-	var mutationCount = mutations.length;
-	for (var m = 0; m < mutationCount; m++) {
-		var mutation = mutations[m];
-
-		var addedNodes = mutation.addedNodes;
-		var addedCount = addedNodes.length;
-		for (var a = 0; a < addedCount; a++) {
-			domMutate.dispatchNodeInsertion(addedNodes[a]);
-		}
-
-		var removedNodes = mutation.removedNodes;
-		var removedCount = removedNodes.length;
-		for (var r = 0; r < removedCount; r++) {
-			domMutate.dispatchNodeRemoval(removedNodes[r]);
-		}
-	}
-}
-
-function handleAttributeMutations(mutations) {
-	var mutationCount = mutations.length;
-	for (var m = 0; m < mutationCount; m++) {
-		var mutation = mutations[m];
-		if (mutation.type === 'attributes') {
-			var node = mutation.target;
-			var attributeName = mutation.attributeName;
-			var oldValue = mutation.oldValue;
-			domMutate.dispatchNodeAttributeChange(node, attributeName, oldValue);
-		}
-	}
-}
-
-var treeMutationConfig = {
-	subtree: true,
-	childList: true
-};
-
-var attributeMutationConfig = {
-	attributes: true,
-	attributeOldValue: true
-};
-
-function addNodeListener(listenerKey, observerKey, isAttributes) {
-	return subscription(function _addNodeListener(target, listener) {
-		var stopObserving;
-		if (isAttributes) {
-			stopObserving = observeMutations(target, observerKey, attributeMutationConfig, handleAttributeMutations);
-		} else {
-			stopObserving = observeMutations(getDocument(target), observerKey, treeMutationConfig, handleTreeMutations);
-		}
-
-		addTargetListener(target, listenerKey, listener);
-		return function removeNodeListener() {
-			stopObserving();
-			removeTargetListener(target, listenerKey, listener);
-		};
+	this.unsubscribe = observeMutations(document.documentElement, treeConfig, function(mutationRecord) {
+		mutationRecord.addedNodes.forEach( createMutationEvents('inserted') );
+		mutationRecord.removedNodes.forEach( createMutationEvents('removed') );
 	});
 }
 
-function addGlobalListener(globalDataKey, addNodeListener) {
-	return subscription(function addGlobalGroupListener(documentElement, listener) {
-		if (!isDocumentElement(documentElement)) {
-			throw new Error('Global mutation listeners must pass a documentElement');
-		}
-
-		var doc = getDocument(documentElement);
-		var documentData = getRelatedData(doc, globalDataKey);
-		if (!documentData) {
-			documentData = {listeners: []};
-			setRelatedData(doc, globalDataKey, documentData);
-		}
-
-		var listeners = documentData.listeners;
-		if (listeners.length === 0) {
-			// We need at least on listener for mutation events to propagate
-			documentData.removeListener = addNodeListener(doc, function () {});
-		}
-
-		listeners.push(listener);
-
-		return function removeGlobalGroupListener() {
-			var documentData = getRelatedData(doc, globalDataKey);
-			if (!documentData) {
-				return;
-			}
-
-			var listeners = documentData.listeners;
-			eliminate(listeners, listener);
-			if (listeners.length === 0) {
-				documentData.removeListener();
-				deleteRelatedData(doc, globalDataKey);
-			}
-		};
-	});
-}
-
-function toMutationEvents (nodes) {
-	var events = [];
-	for (var i = 0; i < nodes.length; i++) {
-		events.push({target: nodes[i]});
+RootObserver.prototype.subscribe = function(node, type, callback) {
+	var subscriptions = this.subscriptions;
+	var callbacks = subscriptions[type].get(node);
+	if (callbacks) {
+		callbacks.push(callback);
+	} else {
+		callbacks = [callback];
+		subscriptions[type].set(node, callbacks);
 	}
-	return events;
-}
 
-var domMutationPrefix = 'domMutation';
-
-// target listener keys
-var insertionDataKey = domMutationPrefix + 'InsertionData';
-var removalDataKey = domMutationPrefix + 'RemovalData';
-var attributeChangeDataKey = domMutationPrefix + 'AttributeChangeData';
-
-// document listener keys
-var documentInsertionDataKey = domMutationPrefix + 'DocumentInsertionData';
-var documentRemovalDataKey = domMutationPrefix + 'DocumentRemovalData';
-var documentAttributeChangeDataKey = domMutationPrefix + 'DocumentAttributeChangeData';
-
-// observer keys
-var treeDataKey = domMutationPrefix + 'TreeData';
-var attributeDataKey = domMutationPrefix + 'AttributeData';
-
-var dispatchInsertion = batch(dispatch(insertionDataKey, documentInsertionDataKey), true);
-var dispatchRemoval = batch(dispatch(removalDataKey, documentRemovalDataKey), true);
-var dispatchAttributeChange = batch(dispatch(attributeChangeDataKey, documentAttributeChangeDataKey));
-
-// node listeners
-var addNodeInsertionListener = addNodeListener(insertionDataKey, treeDataKey);
-var addNodeRemovalListener = addNodeListener(removalDataKey, treeDataKey);
-var addNodeAttributeChangeListener = addNodeListener(attributeChangeDataKey, attributeDataKey, true);
-
-// global listeners
-var addInsertionListener = addGlobalListener(
-	documentInsertionDataKey,
-	addNodeInsertionListener
-);
-var addRemovalListener = addGlobalListener(
-	documentRemovalDataKey,
-	addNodeRemovalListener
-);
-var addAttributeChangeListener = addGlobalListener(
-	documentAttributeChangeDataKey,
-	addNodeAttributeChangeListener
-);
+	return function unsubscribeNode() {
+		var callbacks = subscriptions[type].get(node);
+		callbacks.splice(callbacks.indexOf(callback), 1);
+		if (callbacks.length === 0) {
+			subscriptions[type].delete(node);
+		}
+	};
+};
+var getRootObserver = function() {
+	return rootObserver || (rootObserver = new RootObserver());
+};
 
 /**
  * @module {{}} can-dom-mutate
@@ -360,57 +74,7 @@ var addAttributeChangeListener = addGlobalListener(
  * @group can-dom-events.events 1 events
  * @signature `domMutation`
  */
-domMutate = {
-	/**
-	* @function can-dom-mutate.dispatchNodeInsertion dispatchNodeInsertion
-	*
-	* Dispatch an insertion mutation on the given node.
-	*
-	* @signature `dispatchNodeInsertion( node [, callback ] )`
-	* @parent can-dom-mutate.static
-	* @param {Node} node The node on which to dispatch an insertion mutation.
-	* @param {function} callback The optional callback called after the mutation is dispatched.
-	*/
-	dispatchNodeInsertion: function (node, callback) {
-		var events = toMutationEvents(getAllNodes(node));
-		dispatchInsertion(events, callback);
-	},
-
-	/**
-	* @function can-dom-mutate.dispatchNodeRemoval dispatchNodeRemoval
-	*
-	* Dispatch a removal mutation on the given node.
-	*
-	* @signature `dispatchNodeRemoval( node [, callback ] )`
-	* @parent can-dom-mutate.static
-	* @param {Node} node The node on which to dispatch a removal mutation.
-	* @param {function} callback The optional callback called after the mutation is dispatched.
-	*/
-	dispatchNodeRemoval: function (node, callback) {
-		var events = toMutationEvents(getAllNodes(node));
-		dispatchRemoval(events, callback);
-	},
-
-	/**
-	* @function can-dom-mutate.dispatchNodeAttributeChange dispatchNodeAttributeChange
-	*
-	* Dispatch an attribute change mutation on the given node.
-	*
-	* @signature `dispatchNodeAttributeChange( node, attributeName, oldValue [, callback ] )`
-	* @parent can-dom-mutate.static
-	* @param {Node} target The node on which to dispatch an attribute change mutation.
-	* @param {String} attributeName The attribute name whose value has changed.
-	* @param {String} oldValue The attribute value before the change.
-	* @param {function} callback The optional callback called after the mutation is dispatched.
-	*/
-	dispatchNodeAttributeChange: function (target, attributeName, oldValue, callback) {
-		dispatchAttributeChange([{
-			target: target,
-			attributeName: attributeName,
-			oldValue: oldValue
-		}], callback);
-	},
-
+var domMutate = {
 	/**
 	* @function can-dom-mutate.onNodeInsertion onNodeInsertion
 	*
@@ -422,7 +86,9 @@ domMutate = {
 	* @param {function} callback The callback called when an insertion mutation is dispatched.
 	* @return {function} The callback to remove the mutation listener.
 	*/
-	onNodeInsertion: addNodeInsertionListener,
+	onNodeInsertion: function(node, callback) {
+		return getRootObserver().subscribe(node, 'inserted', callback);
+	},
 
 	/**
 	* @function can-dom-mutate.onNodeRemoval onNodeRemoval
@@ -435,7 +101,9 @@ domMutate = {
 	* @param {function} callback The callback called when a removal mutation is dispatched.
 	* @return {function} The callback to remove the mutation listener.
 	*/
-	onNodeRemoval: addNodeRemovalListener,
+	onNodeRemoval: function(node, callback){
+		return getRootObserver().subscribe(node, 'removed', callback);
+	},
 
 	/**
 	* @function can-dom-mutate.onNodeAttributeChange onNodeAttributeChange
@@ -448,7 +116,9 @@ domMutate = {
 	* @param {function} callback The callback called when an attribute change mutation is dispatched.
 	* @return {function} The callback to remove the mutation listener.
 	*/
-	onNodeAttributeChange: addNodeAttributeChangeListener,
+	onNodeAttributeChange: function (node, callback) {
+		return observeMutations(node, attributeConfig, callback);
+	},
 
 	/**
 	* @function can-dom-mutate.onRemoval onRemoval
@@ -461,7 +131,16 @@ domMutate = {
 	* @param {function} callback The callback called when a removal mutation is dispatched.
 	* @return {function} The callback to remove the mutation listener.
 	*/
-	onRemoval: addRemovalListener,
+	onRemoval: function(documentElement, callback){
+		return observeMutations(documentElement, treeConfig, function(mutationRecord) {
+			mutationRecord.removedNodes.forEach(function(node){
+				callback({
+					type: 'removed',
+					target: node
+				});
+			});
+		});
+	},
 
 	/**
 	* @function can-dom-mutate.onInsertion onInsertion
@@ -474,7 +153,16 @@ domMutate = {
 	* @param {function} callback The callback called when a insertion mutation is dispatched.
 	* @return {function} The callback to remove the mutation listener.
 	*/
-	onInsertion: addInsertionListener,
+	onInsertion: function(documentElement, callback){
+		return observeMutations(documentElement, treeConfig, function(mutationRecord) {
+			mutationRecord.addedNodes.forEach(function(node){
+				callback({
+					type: 'inserted',
+					target: node
+				});
+			});
+		});
+	},
 
 	/**
 	* @function can-dom-mutate.onAttributeChange onAttributeChange
@@ -487,7 +175,9 @@ domMutate = {
 	* @param {function} callback The callback called when an attribute change mutation is dispatched.
 	* @return {function} The callback to remove the mutation listener.
 	*/
-	onAttributeChange: addAttributeChangeListener
+	onAttributeChange: function(documentElement, callback){
+		return observeMutations(documentElement, attributeConfig, callback);
+	}
 };
 
 module.exports = domMutate;
