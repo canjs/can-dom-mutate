@@ -1,7 +1,24 @@
 'use strict';
+var dataStore = new WeakMap();
+
+function getRelatedData(node, key) {
+	var data = dataStore.get(node);
+	if (data) {
+		return data[key];
+	}
+}
+
+function setRelatedData(node, key, targetListenersMap) {
+	var data = dataStore.get(node) || dataStore.set(node, {}).get(node);
+	data[key] = targetListenersMap;
+}
+
+function deleteRelatedData(node, key) {
+	var data = dataStore.get(node);
+	return delete data[key];
+}
 
 var push = Array.prototype.push;
-var domData = require('can-dom-data-state');
 var CIDMap = require('can-cid/map/map');
 var CIDSet = require('can-cid/set/set');
 var globals = require('can-globals');
@@ -66,7 +83,7 @@ function batch(processBatchItems, shouldDeduplicate) {
 
 function getDocumentListeners (target, key) {
 	var doc = getDocument(target);
-	var data = domData.get.call(doc, key);
+	var data = getRelatedData(doc, key);
 	if (data) {
 		return data.listeners;
 	}
@@ -74,7 +91,7 @@ function getDocumentListeners (target, key) {
 
 function getTargetListeners (target, key) {
 	var doc = getDocument(target);
-	var targetListenersMap = domData.get.call(doc, key);
+	var targetListenersMap = getRelatedData(doc, key);
 	if (!targetListenersMap) {
 		return;
 	}
@@ -84,10 +101,10 @@ function getTargetListeners (target, key) {
 
 function addTargetListener (target, key, listener) {
 	var doc = getDocument(target);
-	var targetListenersMap = domData.get.call(doc, key);
+	var targetListenersMap = getRelatedData(doc, key);
 	if (!targetListenersMap) {
 		targetListenersMap = new CIDMap();
-		domData.set.call(doc, key, targetListenersMap);
+		setRelatedData(doc, key, targetListenersMap);
 	}
 	var targetListeners = targetListenersMap.get(target);
 	if (!targetListeners) {
@@ -99,7 +116,7 @@ function addTargetListener (target, key, listener) {
 
 function removeTargetListener (target, key, listener) {
 	var doc = getDocument(target);
-	var targetListenersMap = domData.get.call(doc, key);
+	var targetListenersMap = getRelatedData(doc, key);
 	if (!targetListenersMap) {
 		return;
 	}
@@ -111,7 +128,7 @@ function removeTargetListener (target, key, listener) {
 	if (targetListeners.length === 0) {
 		targetListenersMap['delete'](target);
 		if (targetListenersMap.size === 0) {
-			domData.clean.call(doc, key);
+			deleteRelatedData(doc, key);
 		}
 	}
 }
@@ -144,12 +161,12 @@ function dispatch(listenerKey, documentDataKey) {
 }
 
 function observeMutations(target, observerKey, config, handler) {
-	var observerData = domData.get.call(target, observerKey);
+	var observerData = getRelatedData(target, observerKey);
 	if (!observerData) {
 		observerData = {
 			observingCount: 0
 		};
-		domData.set.call(target, observerKey, observerData);
+		setRelatedData(target, observerKey, observerData);
 	}
 
 	var setupObserver = function () {
@@ -177,14 +194,14 @@ function observeMutations(target, observerKey, config, handler) {
 
 	observerData.observingCount++;
 	return function stopObservingMutations() {
-		var observerData = domData.get.call(target, observerKey);
+		var observerData = getRelatedData(target, observerKey);
 		if (observerData) {
 			observerData.observingCount--;
 			if (observerData.observingCount <= 0) {
 				if (observerData.observer) {
 					observerData.observer.disconnect();
 				}
-				domData.clean.call(target, observerKey);
+				deleteRelatedData(target, observerKey);
 				globals.offKeyValue('MutationObserver', setupObserver);
 			}
 		}
@@ -239,7 +256,7 @@ function addNodeListener(listenerKey, observerKey, isAttributes) {
 		if (isAttributes) {
 			stopObserving = observeMutations(target, observerKey, attributeMutationConfig, handleAttributeMutations);
 		} else {
-			stopObserving = observeMutations(getDocument(target).documentElement, observerKey, treeMutationConfig, handleTreeMutations);
+			stopObserving = observeMutations(getDocument(target), observerKey, treeMutationConfig, handleTreeMutations);
 		}
 
 		addTargetListener(target, listenerKey, listener);
@@ -257,10 +274,10 @@ function addGlobalListener(globalDataKey, addNodeListener) {
 		}
 
 		var doc = getDocument(documentElement);
-		var documentData = domData.get.call(doc, globalDataKey);
+		var documentData = getRelatedData(doc, globalDataKey);
 		if (!documentData) {
 			documentData = {listeners: []};
-			domData.set.call(doc, globalDataKey, documentData);
+			setRelatedData(doc, globalDataKey, documentData);
 		}
 
 		var listeners = documentData.listeners;
@@ -272,7 +289,7 @@ function addGlobalListener(globalDataKey, addNodeListener) {
 		listeners.push(listener);
 
 		return function removeGlobalGroupListener() {
-			var documentData = domData.get.call(doc, globalDataKey);
+			var documentData = getRelatedData(doc, globalDataKey);
 			if (!documentData) {
 				return;
 			}
@@ -281,7 +298,7 @@ function addGlobalListener(globalDataKey, addNodeListener) {
 			eliminate(listeners, listener);
 			if (listeners.length === 0) {
 				documentData.removeListener();
-				domData.clean.call(doc, globalDataKey);
+				deleteRelatedData(doc, globalDataKey);
 			}
 		};
 	});
