@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "can-cid": "^1.1.1",
-    "can-globals": "^0.2.3"
+    "can-globals": "^0.3.0"
   },
   "devDependencies": {
     "fixpack": "^2.3.1",
