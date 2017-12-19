@@ -1,4 +1,23 @@
 'use strict';
+
+var globals = require('can-globals');
+var getRoot = require('can-globals/global/global');
+var getMutationObserver = require('can-globals/mutation-observer/mutation-observer');
+var setImmediate = getRoot().setImmediate || function (cb) {
+	return setTimeout(cb, 0);
+};
+
+var util = require('./-util');
+var getDocument = util.getDocument;
+var eliminate = util.eliminate;
+var subscription = util.subscription;
+var isDocumentElement = util.isDocumentElement;
+var getAllNodes = util.getAllNodes;
+
+var push = Array.prototype.push;
+var slice = Array.prototype.slice;
+
+var domMutate;
 var dataStore = new WeakMap();
 
 function getRelatedData(node, key) {
@@ -18,29 +37,10 @@ function deleteRelatedData(node, key) {
 	return delete data[key];
 }
 
-var push = Array.prototype.push;
-var CIDMap = require('can-cid/map/map');
-var CIDSet = require('can-cid/set/set');
-var globals = require('can-globals');
-var getRoot = require('can-globals/global/global');
-var getMutationObserver = require('can-globals/mutation-observer/mutation-observer');
-var setImmediate = getRoot().setImmediate || function (cb) {
-	return setTimeout(cb, 0);
-};
-
-var util = require('./-util');
-var getDocument = util.getDocument;
-var eliminate = util.eliminate;
-var subscription = util.subscription;
-var isDocumentElement = util.isDocumentElement;
-var getAllNodes = util.getAllNodes;
-
-var domMutate;
-
 function batch(processBatchItems, shouldDeduplicate) {
 	var waitingBatch = [];
 	var waitingCalls = [];
-	var dispatchSet = new CIDSet();
+	var dispatchSet = new Set();
 	var isPrimed = false;
 	return function batchAdd(items, callback) {
 		if (shouldDeduplicate) {
@@ -68,7 +68,7 @@ function batch(processBatchItems, shouldDeduplicate) {
 				var currentCalls = waitingCalls;
 				waitingCalls = [];
 				if (shouldDeduplicate) {
-					dispatchSet = new CIDSet();
+					dispatchSet = new Set();
 				}
 				isPrimed = false;
 				processBatchItems(currentBatch);
@@ -103,7 +103,7 @@ function addTargetListener (target, key, listener) {
 	var doc = getDocument(target);
 	var targetListenersMap = getRelatedData(doc, key);
 	if (!targetListenersMap) {
-		targetListenersMap = new CIDMap();
+		targetListenersMap = new Map();
 		setRelatedData(doc, key, targetListenersMap);
 	}
 	var targetListeners = targetListenersMap.get(target);
@@ -133,6 +133,14 @@ function removeTargetListener (target, key, listener) {
 	}
 }
 
+function fire (callbacks, arg) {
+	var safeCallbacks = slice.call(callbacks, 0);
+	var safeCallbackCount = safeCallbacks.length;
+	for (var i = 0; i < safeCallbackCount; i++) {
+		safeCallbacks[i](arg);
+	}
+}
+
 function dispatch(listenerKey, documentDataKey) {
 	return function dispatchEvents(events) {
 		for (var e = 0; e < events.length; e++) {
@@ -141,9 +149,7 @@ function dispatch(listenerKey, documentDataKey) {
 
 			var targetListeners = getTargetListeners(target, listenerKey);
 			if (targetListeners) {
-				for (var t = 0; t < targetListeners.length; t++) {
-					targetListeners[t](event);
-				}
+				fire(targetListeners, event);
 			}
 
 			if (!documentDataKey) {
@@ -152,9 +158,7 @@ function dispatch(listenerKey, documentDataKey) {
 
 			var documentListeners = getDocumentListeners(target, documentDataKey);
 			if (documentListeners) {
-				for (var l = 0; l < documentListeners.length; l++) {
-					documentListeners[l](event);
-				}
+				fire(documentListeners, event);
 			}
 		}
 	};
