@@ -11,4 +11,3 @@ deploy:
   on:
     tags: true
     repo: canjs/can-dom-mutate
-    branch: release
