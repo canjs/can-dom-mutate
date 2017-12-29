@@ -38,6 +38,14 @@ var compat = {
 			domMutate.dispatchNodeAttributeChange(this, name, oldAttributeValue);
 		}
 		return result;
+	},
+	removeAttribute: function (name) {
+		var oldAttributeValue = this.getAttribute(name);
+		var result = this.removeAttribute(name);
+		if (oldAttributeValue) {
+			domMutate.dispatchNodeAttributeChange(this, name, oldAttributeValue);
+		}
+		return result;	
 	}
 };
 
@@ -60,7 +68,7 @@ compatData.forEach(function (pair) {
 });
 
 var normal = {};
-var nodeMethods = ['appendChild', 'insertBefore', 'removeChild', 'replaceChild', 'setAttribute'];
+var nodeMethods = ['appendChild', 'insertBefore', 'removeChild', 'replaceChild', 'setAttribute', 'removeAttribute'];
 nodeMethods.forEach(function (methodName) {
 	normal[methodName] = function () {
 		return this[methodName].apply(this, arguments);
@@ -143,6 +151,17 @@ var mutate = {};
 * @param {Element} element The element on which to set the attribute.
 * @param {String} name The name of the attribute to set.
 * @param {String} value The value to set on the attribute.
+*/
+
+/**
+* @function can-dom-mutate/node.removeAttribute removeAttribute
+*
+* Removes an attribute from an element, effectively `Element.prototype.removeAttribute`.
+*
+* @signature `mutate.removeAttribute.call(element, name, value)`
+* @parent can-dom-mutate.node
+* @param {Element} element The element from which to remove the attribute.
+* @param {String} name The name of the attribute to remove.
 */
 
 function setMutateStrategy(observer) {

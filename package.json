@@ -11,7 +11,6 @@
     "url": "https://github.com/canjs/can-dom-mutate/issues"
   },
   "dependencies": {
-    "can-cid": "^1.1.1",
     "can-globals": "<2.0.0"
   },
   "devDependencies": {
@@ -36,8 +35,6 @@
     "url": "git://github.com/canjs/can-dom-mutate.git"
   },
   "scripts": {
-    "install-canary": "npm install --no-shrinkwrap",
-    "install-locked": "npm install",
     "jshint": "jshint ./*.js ./test/*.js --config",
     "lint": "fixpack && npm run jshint",
     "preversion": "npm test",

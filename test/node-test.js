@@ -76,6 +76,18 @@ moduleWithMutationObserver('can-dom-mutate/node', function () {
 
 		assert.equal(element.getAttribute('data-foo'), 'bar', 'Attribute should be set');
 	});
+
+	test('removeAttribute should not call domMutate.dispatchNodeAttributeChange', function (assert) {
+		var element = document.createElement('div');
+		var undo = neverCall(assert, domMutate, 'dispatchNodeAttributeChange');
+
+		node.removeAttribute.call(element, 'data-foo');
+		node.setAttribute.call(element, 'data-foo', 'bar');
+		node.removeAttribute.call(element, 'data-foo');
+		undo();
+
+		assert.equal(element.getAttribute('data-foo'), null, 'Attribute should not be set');
+	});
 });
 
 moduleWithoutMutationObserver('can-dom-mutate/node', function () {
@@ -235,6 +247,24 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 		});
 
 		node.setAttribute.call(element, 'data-foo', 'baz');
+	});
+
+	test('removeAttribute should call domMutate.dispatchNodeAttributeChange', function (assert) {
+		var done = assert.async();
+		var element = document.createElement('div');
+		element.setAttribute('data-foo', 'bar');
+
+		var undo = mock(domMutate, 'dispatchNodeAttributeChange', function (node, attributeName, oldAttributeValue, callback) {
+			assert.equal(node, element, 'Should pass the element whose attribute is changing');
+			assert.equal(attributeName, 'data-foo', 'Should pass the changed attribute name');
+			assert.equal(oldAttributeValue, 'bar', 'Should pass the old attribute value');
+			assert.equal(callback, undefined, 'Should not pass a callback');
+			assert.equal(element.getAttribute('data-foo'), null, 'Node attribute value should have been removed');
+			undo();
+			done();
+		});
+
+		node.removeAttribute.call(element, 'data-foo');
 	});
 });
 
