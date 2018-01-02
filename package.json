@@ -37,6 +37,7 @@
   "scripts": {
     "jshint": "jshint ./*.js ./test/*.js --config",
     "lint": "fixpack && npm run jshint",
+    "postpublish": "git push --tags && git push",
     "preversion": "npm test",
     "release:major": "npm version major && npm publish",
     "release:minor": "npm version minor && npm publish",
