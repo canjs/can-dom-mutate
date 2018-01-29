@@ -11,7 +11,7 @@
     "url": "https://github.com/canjs/can-dom-mutate/issues"
   },
   "dependencies": {
-    "can-globals": "<2.0.0"
+    "can-globals": "^1.0.0"
   },
   "devDependencies": {
     "fixpack": "^2.3.1",
