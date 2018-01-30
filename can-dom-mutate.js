@@ -82,7 +82,7 @@ function batch(processBatchItems, shouldDeduplicate) {
 }
 
 function getDocumentListeners (target, key) {
-	var doc = getDocument(target);
+	var doc = getDocument();
 	var data = getRelatedData(doc, key);
 	if (data) {
 		return data.listeners;
@@ -90,7 +90,7 @@ function getDocumentListeners (target, key) {
 }
 
 function getTargetListeners (target, key) {
-	var doc = getDocument(target);
+	var doc = getDocument();
 	var targetListenersMap = getRelatedData(doc, key);
 	if (!targetListenersMap) {
 		return;
@@ -100,7 +100,7 @@ function getTargetListeners (target, key) {
 }
 
 function addTargetListener (target, key, listener) {
-	var doc = getDocument(target);
+	var doc = getDocument();
 	var targetListenersMap = getRelatedData(doc, key);
 	if (!targetListenersMap) {
 		targetListenersMap = new Map();
@@ -115,7 +115,7 @@ function addTargetListener (target, key, listener) {
 }
 
 function removeTargetListener (target, key, listener) {
-	var doc = getDocument(target);
+	var doc = getDocument();
 	var targetListenersMap = getRelatedData(doc, key);
 	if (!targetListenersMap) {
 		return;
@@ -260,7 +260,7 @@ function addNodeListener(listenerKey, observerKey, isAttributes) {
 		if (isAttributes) {
 			stopObserving = observeMutations(target, observerKey, attributeMutationConfig, handleAttributeMutations);
 		} else {
-			stopObserving = observeMutations(getDocument(target), observerKey, treeMutationConfig, handleTreeMutations);
+			stopObserving = observeMutations(getDocument(), observerKey, treeMutationConfig, handleTreeMutations);
 		}
 
 		addTargetListener(target, listenerKey, listener);
@@ -277,7 +277,7 @@ function addGlobalListener(globalDataKey, addNodeListener) {
 			throw new Error('Global mutation listeners must pass a documentElement');
 		}
 
-		var doc = getDocument(documentElement);
+		var doc = getDocument();
 		var documentData = getRelatedData(doc, globalDataKey);
 		if (!documentData) {
 			documentData = {listeners: []};

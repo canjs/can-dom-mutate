@@ -128,4 +128,22 @@ moduleMutationObserver('can-dom-mutate', function () {
 		parent.appendChild(child);
 		node.removeChild.call(parent, child);
 	});
+
+	test('onNodeInsertion should be called when that node is inserted into a different document', function(assert){
+		var done = assert.async();
+		var parent = testUtils.getFixture();
+
+		var doc1 = document.implementation.createHTMLDocument('doc1');
+		var child = doc1.createElement('div');
+
+		var undo = domMutate.onNodeInsertion(child, function (mutation) {
+			var node = mutation.target;
+			assert.equal(node, child, 'Node should be the inserted child');
+
+			undo();
+			done();
+		});
+
+		node.appendChild.call(parent, child);
+	});
 });
