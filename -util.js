@@ -1,3 +1,5 @@
+var getDocument = require("can-globals/document/document");
+
 var push = Array.prototype.push;
 
 function eliminate(array, item) {
@@ -8,19 +10,15 @@ function eliminate(array, item) {
 }
 
 function isInDocument (node) {
-	var root = node.ownerDocument.documentElement;
+	var root = getDocument().documentElement;
 	if (root === node) {
 		return true;
 	}
 	return root.contains(node);
 }
 
-function getDocument(target) {
-	return target.ownerDocument || target.document || target;
-}
-
 function isDocumentElement (node) {
-	return getDocument(node).documentElement === node;
+	return getDocument().documentElement === node;
 }
 
 function isFragment (node) {
