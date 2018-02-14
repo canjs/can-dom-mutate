@@ -17,7 +17,7 @@ npm install can-dom-mutate
 With StealJS, you can import this module directly in a template that is autorendered:
 
 ```js
-import domMutate from 'can-dom-mutate';
+import domMutate from "can-dom-mutate";
 ```
 
 ### CommonJS use
