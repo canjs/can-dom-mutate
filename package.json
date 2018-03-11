@@ -1,7 +1,7 @@
 {
   "name": "can-dom-mutate",
   "description": "Dispatch and listen for DOM mutations",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": {
     "name": "DoneJS Team",
     "email": "core@donejs.com",
