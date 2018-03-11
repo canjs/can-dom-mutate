@@ -357,15 +357,53 @@ var addAttributeChangeListener = addGlobalListener(
 
 /**
  * @module {{}} can-dom-mutate
- * @parent can-infrastructure
+ * @parent can-dom-utilities
+ * @collection can-infrastructure
+ *
  * @description Dispatch and listen for DOM mutations.
- * @group can-dom-events.static 0 static
- * @group can-dom-events.events 1 events
- * @signature `domMutation`
+ * @group can-dom-mutate.static 0 methods
+ * @group can-dom-mutate/modules 1 modules
+ * @signature `domMutate`
+ *
+ * `can-dom-mutate` exports an object that lets you listen to changes
+ * in the DOM using the [MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver)
+ * API.
+ *
+ * ```js
+ * import domMutate from "can-dom-mutate";
+ *
+ * domMutate //->
+ * {
+ *   onAttributeChange( documentElement, callback ),
+ *   onInsertion( documentElement, callback ),
+ *   onRemoval( documentElement, callback ),
+ *   onNodeAttributeChange( node, callback ),
+ *   onNodeInsertion( node, callback ),
+ *   onNodeRemoval( node, callback )
+ * }
+ *
+ * // listen to every attribute change within the document:
+ * domMutate.onAttributeChange(document.documentElement, function(mutationRecord){
+ *   mutationRecord.target        //-> <input>
+ *   mutationRecord.attributeName //-> "name"
+ *   mutationRecord.oldValue      //-> "Ramiya"
+ * })
+ * ```
+ *
+ * If you want to support browsers that do not support the `MutationObserver` api, use
+ * [can-dom-mutate/node] to update the DOM. Every module within CanJS should do this:
+ *
+ * ```js
+ * var mutate = require('can-dom-mutate/node');
+ * var el = document.createElement('div');
+ *
+ * mutate.appendChild.call(document.body, el);
+ * ```
  */
 domMutate = {
 	/**
 	* @function can-dom-mutate.dispatchNodeInsertion dispatchNodeInsertion
+	* @hide
 	*
 	* Dispatch an insertion mutation on the given node.
 	*
@@ -381,6 +419,7 @@ domMutate = {
 
 	/**
 	* @function can-dom-mutate.dispatchNodeRemoval dispatchNodeRemoval
+	* @hide
 	*
 	* Dispatch a removal mutation on the given node.
 	*
@@ -396,11 +435,19 @@ domMutate = {
 
 	/**
 	* @function can-dom-mutate.dispatchNodeAttributeChange dispatchNodeAttributeChange
+	* @parent can-dom-mutate.static
+	* @hide
 	*
 	* Dispatch an attribute change mutation on the given node.
 	*
 	* @signature `dispatchNodeAttributeChange( node, attributeName, oldValue [, callback ] )`
-	* @parent can-dom-mutate.static
+	*
+	* ```
+	* input.setAttribute("value", "newValue")
+	* domMutate.dispatchNodeAttributeChange(input, "value","oldValue")
+	* ```
+	*
+	*
 	* @param {Node} target The node on which to dispatch an attribute change mutation.
 	* @param {String} attributeName The attribute name whose value has changed.
 	* @param {String} oldValue The attribute value before the change.
