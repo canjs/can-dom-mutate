@@ -1,3 +1,4 @@
+"use strict";
 var getDocument = require("can-globals/document/document");
 
 var push = Array.prototype.push;
