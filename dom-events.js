@@ -2,7 +2,7 @@
 
 var domMutate = require('can-dom-mutate');
 
-function makeMutationEvent (defaultEventType, subscription) {
+function makeMutationEvent (defaultEventType, subscription, bubbles) {
 	var elementSubscriptions = new Map();
 	return {
 		_subscriptions: elementSubscriptions,
@@ -25,7 +25,7 @@ function makeMutationEvent (defaultEventType, subscription) {
 						eventData[key] = mutation[key];
 					}
 
-					dispatch(target, eventData);
+					dispatch(target, eventData, bubbles !== false);
 				});
 			}
 
@@ -48,6 +48,6 @@ function makeMutationEvent (defaultEventType, subscription) {
 
 module.exports = {
 	attributes: makeMutationEvent('attributes', domMutate.onNodeAttributeChange),
-	inserted: makeMutationEvent('inserted', domMutate.onNodeInsertion),
+	inserted: makeMutationEvent('inserted', domMutate.onNodeInsertion, false),
 	removed: makeMutationEvent('removed', domMutate.onNodeRemoval)
 };
