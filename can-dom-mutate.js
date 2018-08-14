@@ -3,6 +3,7 @@
 var globals = require('can-globals');
 var getRoot = require('can-globals/global/global');
 var getMutationObserver = require('can-globals/mutation-observer/mutation-observer');
+var namespace = require('can-namespace');
 var setImmediate = getRoot().setImmediate || function (cb) {
 	return setTimeout(cb, 0);
 };
@@ -540,4 +541,4 @@ domMutate = {
 	onAttributeChange: addAttributeChangeListener
 };
 
-module.exports = domMutate;
+module.exports = namespace.domMutate = domMutate;

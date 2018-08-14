@@ -1,6 +1,7 @@
 'use strict';
 
 var globals = require('can-globals');
+var namespace = require('can-namespace');
 var domMutate = require('./can-dom-mutate');
 var util = require('./-util');
 
@@ -184,4 +185,4 @@ var mutationObserverKey = 'MutationObserver';
 setMutateStrategy(globals.getKeyValue(mutationObserverKey));
 globals.onKeyValue(mutationObserverKey, setMutateStrategy);
 
-module.exports = mutate;
+module.exports = namespace.domMutateNode = mutate;
