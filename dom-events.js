@@ -1,6 +1,7 @@
 'use strict';
 
 var domMutate = require('can-dom-mutate');
+var namespace = require('can-namespace');
 
 function makeMutationEvent (defaultEventType, subscription, bubbles) {
 	var elementSubscriptions = new Map();
@@ -46,7 +47,7 @@ function makeMutationEvent (defaultEventType, subscription, bubbles) {
 	};
 }
 
-module.exports = {
+module.exports = namespace.domMutateDomEvents = {
 	attributes: makeMutationEvent('attributes', domMutate.onNodeAttributeChange),
 	inserted: makeMutationEvent('inserted', domMutate.onNodeInsertion, false),
 	removed: makeMutationEvent('removed', domMutate.onNodeRemoval)
