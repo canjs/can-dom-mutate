@@ -1,5 +1,6 @@
 var unit = require('steal-qunit');
 var domMutate = require('../can-dom-mutate');
+var getDocument = require('can-globals/document/document');
 var node = require('../node');
 var testUtils = require('./test-utils');
 
@@ -340,5 +341,20 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 		node.replaceChild.call(fragment, child, oldChild);
 		undoRemoval();
 		undoInsertion();
+	});
+
+	test('removeChild on the documentElement', function(assert) {
+		var done = assert.async();
+		var doc1 = document.implementation.createHTMLDocument('doc1');
+
+		var undo = domMutate.onNodeRemoval(doc1.documentElement, function() {
+			assert.ok(true, 'this was called');
+			undo();
+			done();
+		});
+
+		getDocument(doc1);
+		node.removeChild.call(doc1, doc1.documentElement);
+		getDocument(document);
 	});
 });

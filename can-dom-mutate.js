@@ -257,6 +257,15 @@ var attributeMutationConfig = {
 
 function addNodeListener(listenerKey, observerKey, isAttributes) {
 	return subscription(function _addNodeListener(target, listener) {
+		// DocumentFragment
+		if(target.nodeType === 11) {
+			// This returns a noop without actually doing anything.
+			// We should probably warn about passing a DocumentFragment here,
+			// but since can-stache does so currently we are ignoring until that is
+			// fixed.
+			return Function.prototype;
+		}
+
 		var stopObserving;
 		if (isAttributes) {
 			stopObserving = observeMutations(target, observerKey, attributeMutationConfig, handleAttributeMutations);

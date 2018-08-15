@@ -11,7 +11,7 @@ function eliminate(array, item) {
 }
 
 function isInDocument (node) {
-	var root = getDocument().documentElement;
+	var root = getDocument();
 	if (root === node) {
 		return true;
 	}
