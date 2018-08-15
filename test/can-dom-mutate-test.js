@@ -1,7 +1,9 @@
 var unit = require('steal-qunit');
 var domMutate = require('../can-dom-mutate');
+var getDocument = require('can-globals/document/document');
 var node = require('../node');
 var testUtils = require('./test-utils');
+var globals = require('can-globals');
 
 var test = unit.test;
 var moduleMutationObserver = testUtils.moduleMutationObserver;
@@ -145,5 +147,21 @@ moduleMutationObserver('can-dom-mutate', function () {
 		});
 
 		node.appendChild.call(parent, child);
+	});
+
+	test('onNodeRemoval does not leak when given a document fragment', function(assert){
+		var doc1 = document.implementation.createHTMLDocument('doc1');
+		var frag = doc1.createDocumentFragment();
+		frag.appendChild(doc1.createElement('div'));
+
+		// Figure out how many things are listening for MO changes.
+		var getListenerCount = function() { return globals.eventHandlers.MutationObserver.length; };
+		var previousListenerCount = getListenerCount();
+
+		getDocument(doc1);
+		domMutate.onNodeRemoval(frag, function() {});
+		getDocument(document);
+
+		assert.equal(getListenerCount(), previousListenerCount, "No new listeners added for this fragment");
 	});
 });
