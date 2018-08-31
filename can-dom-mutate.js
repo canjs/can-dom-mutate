@@ -29,7 +29,11 @@ function getRelatedData(node, key) {
 }
 
 function setRelatedData(node, key, targetListenersMap) {
-	var data = dataStore.get(node) || dataStore.set(node, {}).get(node);
+	var data = dataStore.get(node)
+	if (!data) {
+		dataStore.set(node, {})
+		data = {};
+	}
 	data[key] = targetListenersMap;
 }
 
