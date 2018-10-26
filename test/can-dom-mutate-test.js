@@ -1,9 +1,10 @@
 var unit = require('steal-qunit');
 var domMutate = require('../can-dom-mutate');
-var getDocument = require('can-globals/document/document');
+var DOCUMENT = require('can-globals/document/document');
 var node = require('../node');
 var testUtils = require('./test-utils');
 var globals = require('can-globals');
+var MUTATION_OBSERVER = require('can-globals/mutation-observer/mutation-observer');
 
 var test = unit.test;
 var moduleMutationObserver = testUtils.moduleMutationObserver;
@@ -24,6 +25,7 @@ moduleMutationObserver('can-dom-mutate', function () {
 
 		node.appendChild.call(parent, child);
 	});
+
 
 	test('onNodeRemoval should be called when that node is removed', function (assert) {
 		var done = assert.async();
@@ -158,10 +160,49 @@ moduleMutationObserver('can-dom-mutate', function () {
 		var getListenerCount = function() { return globals.eventHandlers.MutationObserver.length; };
 		var previousListenerCount = getListenerCount();
 
-		getDocument(doc1);
+		DOCUMENT(doc1);
 		domMutate.onNodeRemoval(frag, function() {});
-		getDocument(document);
+		DOCUMENT(document);
 
 		assert.equal(getListenerCount(), previousListenerCount, "No new listeners added for this fragment");
+	});
+
+	test('onNodeInsertion should be called when textNode is inserted within a parent', function (assert) {
+		var done = assert.async();
+		var parent = testUtils.getFixture();
+		var child = document.createTextNode("Hello World");
+		var wrapper = document.createElement("div");
+		wrapper.appendChild(child);
+
+		var undo = domMutate.onNodeInsertion(child, function (mutation) {
+			var node = mutation.target;
+			assert.equal(node, child, 'Node should be the inserted child');
+
+			undo();
+			done();
+		});
+
+		node.appendChild.call(parent, wrapper);
+	});
+
+	test('changing the MutationObserver tears down the mutation observer', 2, function (assert) {
+		var done = assert.async();
+		var parent = testUtils.getFixture();
+		var wrapper = document.createElement("div");
+
+		var undoA = domMutate.onNodeInsertion(wrapper, function () {
+			QUnit.ok(true, "this will still be called b/c it's on the document");
+			undoA();
+		});
+		MUTATION_OBSERVER(MUTATION_OBSERVER());
+		var undoB = domMutate.onNodeInsertion(wrapper, function (mutation) {
+			var node = mutation.target;
+			assert.equal(node, wrapper, 'Node should be the inserted child');
+
+			undoB();
+			done();
+		});
+
+		node.appendChild.call(parent, wrapper);
 	});
 });

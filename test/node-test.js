@@ -346,14 +346,14 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 	test('removeChild on the documentElement', function(assert) {
 		var done = assert.async();
 		var doc1 = document.implementation.createHTMLDocument('doc1');
-
+		getDocument(doc1);
 		var undo = domMutate.onNodeRemoval(doc1.documentElement, function() {
 			assert.ok(true, 'this was called');
 			undo();
 			done();
 		});
 
-		getDocument(doc1);
+
 		node.removeChild.call(doc1, doc1.documentElement);
 		getDocument(document);
 	});

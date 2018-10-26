@@ -85,7 +85,7 @@ nodeMethods.forEach(function (methodName) {
 * @signature `mutateNode`
 *
 * Exports an `Object` with methods that shouhld be used to mutate HTML.
-* 
+*
 * ```js
 * var mutateNode = require('can-dom-mutate/node');
 * var el = document.createElement('div');
@@ -185,4 +185,4 @@ var mutationObserverKey = 'MutationObserver';
 setMutateStrategy(globals.getKeyValue(mutationObserverKey));
 globals.onKeyValue(mutationObserverKey, setMutateStrategy);
 
-module.exports = namespace.domMutateNode = mutate;
+module.exports = namespace.domMutateNode = domMutate.node = mutate;
