@@ -5,6 +5,7 @@ var getRoot = require('can-globals/global/global');
 var getMutationObserver = require('can-globals/mutation-observer/mutation-observer');
 var namespace = require('can-namespace');
 var DOCUMENT = require("can-globals/document/document");
+var canReflect = require("can-reflect");
 
 var util = require('./-util');
 var eliminate = util.eliminate;
@@ -209,8 +210,8 @@ function handleTreeMutations(mutations) {
 		}
 	}
 
-	dispatchRemoval( toMutationEvents( Array.from(removed) ) );
-	dispatchInsertion( toMutationEvents( Array.from(added) ) );
+	dispatchRemoval( toMutationEvents( canReflect.toArray(removed) ) );
+	dispatchInsertion( toMutationEvents( canReflect.toArray(added) ) );
 }
 
 function handleAttributeMutations(mutations) {
@@ -356,7 +357,7 @@ domMutate = {
 	dispatchNodeInsertion: function (node, callback) {
 		var nodes = new Set();
 		util.addToSet( getAllNodes(node), nodes);
-		var events = toMutationEvents( Array.from(nodes) );
+		var events = toMutationEvents( canReflect.toArray(nodes) );
 		dispatchInsertion(events, callback);
 	},
 
@@ -374,7 +375,7 @@ domMutate = {
 	dispatchNodeRemoval: function (node, callback) {
 		var nodes = new Set();
 		util.addToSet( getAllNodes(node), nodes);
-		var events = toMutationEvents( Array.from(nodes) );
+		var events = toMutationEvents( canReflect.toArray(nodes) );
 		dispatchRemoval(events, callback);
 	},
 
