@@ -109,7 +109,7 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 	});
 
 	function getFragmentInsertionTest () {
-		var fragment = new DocumentFragment();
+		var fragment = document.createDocumentFragment();
 		var child1 = document.createElement('div');
 		var child2 = document.createElement('div');
 		var grandchild = document.createElement('div');
@@ -285,7 +285,7 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 
 	test('appendChild should not call dispatchNodeInsertion', function (assert) {
 		assert.expect(0);
-		var fragment = new DocumentFragment();
+		var fragment = document.createDocumentFragment();
 		var child = document.createElement('div');
 		var undo = mock(domMutate, 'dispatchNodeInsertion', function () {
 			assert.ok(false, 'This should never be called');
@@ -297,7 +297,7 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 
 	test('insertBefore should not call dispatchNodeInsertion', function (assert) {
 		assert.expect(0);
-		var fragment = new DocumentFragment();
+		var fragment = document.createDocumentFragment();
 		var child = document.createElement('div');
 		var reference = document.createElement('span');
 		fragment.appendChild(reference);
@@ -312,7 +312,7 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 
 	test('removeChild should not call dispatchNodeRemoval', function (assert) {
 		assert.expect(0);
-		var fragment = new DocumentFragment();
+		var fragment = document.createDocumentFragment();
 		var child = document.createElement('div');
 		fragment.appendChild(child);
 
@@ -326,7 +326,7 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 
 	test('replaceChild should not call dispatchNodeRemoval+Insertion', function (assert) {
 		assert.expect(0);
-		var fragment = new DocumentFragment();
+		var fragment = document.createDocumentFragment();
 		var child = document.createElement('div');
 		var oldChild = document.createElement('span');
 		fragment.appendChild(oldChild);
