@@ -9,8 +9,23 @@ function eliminate(array, item) {
 }
 
 function addToSet(items, set) {
-	for(var i =0, length = items.length; i < length; i++ ) {
+	for(var i =0, length = items.length; i < length; i++) {
 		set.add(items[i]);
+	}
+}
+
+function contains(parent, child){
+	if(parent.contains) {
+		return parent.contains(child);
+	}
+	if(parent.nodeType === Node.DOCUMENT_NODE && parent.documentElement) {
+		return contains(parent.documentElement, child);
+	} else {
+		child = child.parentNode;
+		if(child === parent) {
+			return true;
+		}
+		return false;
 	}
 }
 
@@ -19,7 +34,8 @@ function isInDocument (node) {
 	if (root === node) {
 		return true;
 	}
-	return root.contains(node);
+
+	return contains(root, node);
 }
 
 function isDocumentElement (node) {
