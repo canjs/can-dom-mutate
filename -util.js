@@ -46,6 +46,10 @@ function isFragment (node) {
 	return !!(node && node.nodeType === 11);
 }
 
+function isElementNode (node) {
+	return !!(node && node.nodeType === 1);
+}
+
 function getChildren (parentNode) {
 	var nodes = [];
 	var node = parentNode.firstChild;
@@ -106,18 +110,27 @@ function getNodesLegacyB(node) {
 	return items;
 }
 
+// IE11 requires a filter parameter for createTreeWalker
+// it also must be an object with an `acceptNode` property
+function treeWalkerFilterFunction() {
+	return NodeFilter.FILTER_ACCEPT;
+}
+var treeWalkerFilter = treeWalkerFilterFunction;
+treeWalkerFilter.acceptNode = treeWalkerFilterFunction;
+
 function getNodesWithTreeWalker(rootNode) {
 	var result = isFragment(rootNode) ? [] : [rootNode];
 
-	var walker = getDocument().createTreeWalker(
+	// IE11 throws if createTreeWalker is called on a non-ElementNode
+	var walker = isElementNode(rootNode) && getDocument().createTreeWalker(
 		rootNode,
 		NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
-		null,
+		treeWalkerFilter,
 		false
 	);
 
 	var node;
-	while(node = walker.nextNode()) {
+	while(node = walker && walker.nextNode()) {
 		result.push(node);
 	}
 	return result;
