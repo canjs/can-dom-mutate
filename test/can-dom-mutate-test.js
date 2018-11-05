@@ -81,7 +81,7 @@ moduleMutationObserver('can-dom-mutate', function () {
 		assert.expect(3);
 		var done = assert.async();
 		var parent = testUtils.getFixture();
-		var fragment = new DocumentFragment();
+		var fragment = document.createDocumentFragment();
 		var child1 = document.createElement('div');
 		child1.id = 'child1';
 		var child2 = document.createElement('div');

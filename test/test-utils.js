@@ -42,8 +42,8 @@ function getFixture () {
 }
 
 module.exports = {
-	mock,
-	getFixture,
+	mock: mock,
+	getFixture: getFixture,
 	moduleMutationObserver: moduleMutationObserver,
 	moduleWithMutationObserver: moduleWithMutationObserver,
 	moduleWithoutMutationObserver: moduleWithoutMutationObserver
