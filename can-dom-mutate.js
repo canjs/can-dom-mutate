@@ -193,6 +193,14 @@ function observeMutations(target, observerKey, config, handler) {
 }
 
 function handleTreeMutations(mutations) {
+	// in IE11, if the document is being removed
+	// (such as when an iframe is added and then removed)
+	// all of the global constructors will not exist
+	// (typeof "unkown"???). If this happens before a
+	// a tree mutation is handled, this will throw an
+	// `Object expected` error. This prevents that error.
+	if (typeof Set === "unknown") { return; }
+
 	var mutationCount = mutations.length;
 	var added = new Set(), removed = new Set();
 	for (var m = 0; m < mutationCount; m++) {
