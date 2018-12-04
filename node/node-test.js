@@ -1,8 +1,8 @@
 var unit = require('steal-qunit');
 var domMutate = require('../can-dom-mutate');
 var getDocument = require('can-globals/document/document');
-var node = require('../node');
-var testUtils = require('./test-utils');
+var node = require('./node');
+var testUtils = require('../test/test-utils');
 
 var test = unit.test;
 var moduleWithMutationObserver = testUtils.moduleWithMutationObserver;

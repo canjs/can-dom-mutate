@@ -1,9 +1,9 @@
 var unit = require('steal-qunit');
 var domEvents = require('can-dom-events');
 var domMutate = require('../can-dom-mutate');
-var domMutateDomEvents = require('../dom-events');
-var node = require('../node');
-var testUtils = require('./test-utils');
+var domMutateDomEvents = require('./events');
+var node = require('../node/node');
+var testUtils = require('../test/test-utils');
 
 var test = unit.test;
 
