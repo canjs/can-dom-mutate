@@ -5,11 +5,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/canjs/can-dom-mutate/blob/master/LICENSE)
 [![npm version](https://badge.fury.io/js/can-dom-mutate.svg)](https://www.npmjs.com/package/can-dom-mutate)
 [![Travis build status](https://travis-ci.org/canjs/can-dom-mutate.svg?branch=master)](https://travis-ci.org/canjs/can-dom-mutate)
-[![AppVeyor build status](https://ci.appveyor.com/api/projects/status/github/canjs/can-dom-mutate?branch=master&svg=true)](https://ci.appveyor.com/project/matthewp/can-dom-mutate)
-[![Coverage status](https://coveralls.io/repos/github/canjs/can-dom-mutate/badge.svg?branch=master)](https://coveralls.io/github/canjs/can-dom-mutate?branch=master)
 [![Greenkeeper badge](https://badges.greenkeeper.io/canjs/can-dom-mutate.svg)](https://greenkeeper.io/)
 
-npm install can-dom-mutate
+Dispatch and listen for DOM mutations.
 
 ## Documentation
 
