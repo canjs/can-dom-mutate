@@ -1,38 +1,28 @@
 # can-dom-mutate
 
-> Dispatch and listen for DOM mutations
-
-```sh
-npm install can-dom-mutate
-```
-
-[![npm](https://img.shields.io/npm/v/can-dom-mutate.svg)](https://www.npmjs.com/package/can-dom-mutate)
+[![Join our Slack](https://img.shields.io/badge/slack-join%20chat-611f69.svg)](https://www.bitovi.com/community/slack?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join our Discourse](https://img.shields.io/discourse/https/forums.bitovi.com/posts.svg)](https://forums.bitovi.com/?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/canjs/can-dom-mutate/blob/master/LICENSE)
+[![npm version](https://badge.fury.io/js/can-dom-mutate.svg)](https://www.npmjs.com/package/can-dom-mutate)
+[![Travis build status](https://travis-ci.org/canjs/can-dom-mutate.svg?branch=master)](https://travis-ci.org/canjs/can-dom-mutate)
+[![AppVeyor build status](https://ci.appveyor.com/api/projects/status/github/canjs/can-dom-mutate?branch=master&svg=true)](https://ci.appveyor.com/project/matthewp/can-dom-mutate)
+[![Coverage status](https://coveralls.io/repos/github/canjs/can-dom-mutate/badge.svg?branch=master)](https://coveralls.io/github/canjs/can-dom-mutate?branch=master)
 [![Greenkeeper badge](https://badges.greenkeeper.io/canjs/can-dom-mutate.svg)](https://greenkeeper.io/)
-[![Build Status](https://travis-ci.org/canjs/can-dom-mutate.svg?branch=master)](https://travis-ci.org/canjs/can-dom-mutate)
 
-## Usage
+npm install can-dom-mutate
 
-### ES6 use
+## Documentation
 
-With StealJS, you can import this module directly in a template that is autorendered:
+Read the [can-dom-mutate API docs on CanJS.com](https://canjs.com/doc/can-dom-mutate.html).
 
-```js
-import domMutate from "can-dom-mutate";
-```
+## Changelog
 
-### CommonJS use
+See the [latest releases on GitHub](https://github.com/canjs/can-dom-mutate/releases).
 
-Use `require` to load `can-dom-mutate` and everything else
-needed to create a template that uses `can-dom-mutate`:
+## Contributing
 
-```js
-import domMutate from "can-dom-mutate";
-```
+The [contribution guide](https://github.com/canjs/can-dom-mutate/blob/master/CONTRIBUTING.md) has information on getting help, reporting bugs, developing locally, and more.
 
-### Standalone use
+## License
 
-Load the `global` version of the plugin:
-
-```html
-<script src='./node_modules/can-dom-mutate/dist/global/can-dom-mutate.js'></script>
-```
+[MIT](https://github.com/canjs/can-dom-mutate/blob/master/LICENSE)
