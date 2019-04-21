@@ -220,5 +220,5 @@ moduleMutationObserver('can-dom-mutate', function () {
 		domMutate.flushRecords();
 		QUnit.ok(called, "insertion run immediately");
 
-	})
+	});
 });
