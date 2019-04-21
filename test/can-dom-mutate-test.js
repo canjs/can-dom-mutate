@@ -205,4 +205,20 @@ moduleMutationObserver('can-dom-mutate', function () {
 
 		node.appendChild.call(parent, wrapper);
 	});
+
+	test('flushRecords works', function(){
+
+		var parent = testUtils.getFixture();
+		var wrapper = document.createElement("div");
+		var called = false;
+		domMutate.onNodeInsertion(wrapper, function () {
+			called = true;
+		});
+
+		node.appendChild.call(parent, wrapper);
+
+		domMutate.flushRecords();
+		QUnit.ok(called, "insertion run immediately");
+
+	})
 });

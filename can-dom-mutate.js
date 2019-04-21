@@ -490,7 +490,16 @@ domMutate = {
 	* @param {function} callback The callback called when an attribute change mutation is dispatched.
 	* @return {function} The callback to remove the mutation listener.
 	*/
-	onAttributeChange: addAttributeChangeListener
+	onAttributeChange: addAttributeChangeListener,
+
+	flushRecords: function(doc){
+		doc = doc || DOCUMENT();
+		var data = dataStore.get(doc);
+		if(data) {
+			var records = data.domMutationTreeData.observer.takeRecords();
+			handleTreeMutations(records);
+		}
+	}
 };
 
 module.exports = namespace.domMutate = domMutate;
