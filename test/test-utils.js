@@ -1,4 +1,4 @@
-var unit = require('steal-qunit');
+var QUnit = require('steal-qunit');
 var globals = require('can-globals');
 var mutationObserverKey = 'MutationObserver';
 
@@ -8,20 +8,20 @@ function moduleWithMutationObserver (title, tests) {
 		return;
 	}
 
-	unit.module(title + ' w/ MutationObserver', {}, tests);
+	QUnit.module(title + ' w/ MutationObserver', {}, tests);
 }
 
 function moduleWithoutMutationObserver (title, tests) {
 	var hooks = {
-		setup: function () {
+		beforeEach: function () {
 			globals.setKeyValue(mutationObserverKey, null);
 		},
-		teardown: function () {
+		afterEach: function () {
 			globals.deleteKeyValue(mutationObserverKey);
 		}
 	};
 
-	unit.module(title + ' w/o MutationObserver', hooks, tests);
+	QUnit.module(title + ' w/o MutationObserver', hooks, tests);
 }
 
 function moduleMutationObserver (title, tests) {
