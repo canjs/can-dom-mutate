@@ -206,8 +206,8 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.appendChild.call(parent, wrapper);
 	});
 
-	test('flushRecords works', function(){
-
+	test('flushRecords works', function(assert){
+		var done = assert.async();
 		var parent = testUtils.getFixture();
 		var wrapper = document.createElement("div");
 		var called = false;
@@ -219,6 +219,6 @@ moduleMutationObserver('can-dom-mutate', function () {
 
 		domMutate.flushRecords();
 		QUnit.ok(called, "insertion run immediately");
-
+		setTimeout(done, 1);
 	});
 });

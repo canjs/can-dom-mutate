@@ -109,11 +109,40 @@ function removeTargetListener (target, key, listener) {
 	}
 }
 
-function fire (callbacks, arg) {
-	var safeCallbacks = slice.call(callbacks, 0);
-	var safeCallbackCount = safeCallbacks.length;
-	for (var i = 0; i < safeCallbackCount; i++) {
-		safeCallbacks[i](arg);
+var promise = Promise.resolve();
+function nextTick(handler) {
+	promise.then(handler);
+}
+
+var recordsAndCallbacks = null;
+
+function flushRecords(){
+	if(recordsAndCallbacks === null) {
+		return;
+	}
+	var safeBatch = recordsAndCallbacks;
+	recordsAndCallbacks = null;
+
+	var batchCount = safeBatch.length;
+	var callbacks;
+	var callbacksCount;
+	for (var i = 0; i < batchCount; i++) {
+		var batchData = safeBatch[i];
+		callbacks = batchData.callbacks.slice(0);
+		callbacksCount = callbacks.length;
+
+		for(var c = 0; c < callbacksCount; c++){
+			callbacks[c](batchData.arg);
+		}
+	}
+}
+
+function fire(callbacks, arg) {
+	if(recordsAndCallbacks === null) {
+		recordsAndCallbacks = [{arg: arg, callbacks: callbacks}];
+		nextTick(flushRecords);
+	} else {
+		recordsAndCallbacks.push({arg: arg, callbacks: callbacks})
 	}
 }
 
@@ -496,8 +525,14 @@ domMutate = {
 		doc = doc || DOCUMENT();
 		var data = dataStore.get(doc);
 		if(data) {
-			var records = data.domMutationTreeData.observer.takeRecords();
-			handleTreeMutations(records);
+			if(data.domMutationTreeData.observer) {
+				var records = data.domMutationTreeData.observer.takeRecords();
+				handleTreeMutations(records);
+			}
+			// flush any synthetic records
+			flushRecords();
+
+
 		}
 	}
 };

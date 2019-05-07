@@ -9,6 +9,8 @@ var test = unit.test;
 
 testUtils.moduleWithMutationObserver('can-dom-mutate/dom-events', function () {
 	test('inserted', function (assert) {
+		// make sure QUnit writing out the page is fully finished.
+		domMutate.flushRecords();
 		var done = assert.async();
 		var fixture = testUtils.getFixture();
 		var parent = document.createElement('div');
@@ -47,7 +49,7 @@ testUtils.moduleWithMutationObserver('can-dom-mutate/dom-events', function () {
 
 		// listen for any element being inserted and run appropriate test
 		var onNodeInsertionCount = 0;
-		removeOnInsertionHandler  = domMutate.onInsertion(document.documentElement, function () {
+		removeOnInsertionHandler  = domMutate.onInsertion(document.documentElement, function (arg) {
 			switch(onNodeInsertionCount) {
 				case 0:
 					assert.equal(insertedEventCount, 1, 'inserted event should trigger for event.currentTarget');
@@ -55,7 +57,7 @@ testUtils.moduleWithMutationObserver('can-dom-mutate/dom-events', function () {
 					break;
 				case 1:
 					assert.equal(insertedEventCount, 1, 'inserted event should NOT trigger for child of event.currentTarget');
-					setTimeout(cleanup, 50);
+					setTimeout(cleanup, 100);
 					break;
 			}
 			onNodeInsertionCount++;
