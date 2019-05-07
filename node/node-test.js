@@ -7,6 +7,7 @@ var testUtils = require('../test/test-utils');
 var test = unit.test;
 var moduleWithMutationObserver = testUtils.moduleWithMutationObserver;
 var moduleWithoutMutationObserver = testUtils.moduleWithoutMutationObserver;
+var moduleMutationObserver = testUtils.moduleMutationObserver;
 var mock = testUtils.mock;
 
 function neverCall(assert, obj, methodName) {
@@ -15,7 +16,25 @@ function neverCall(assert, obj, methodName) {
 	});
 }
 
+moduleMutationObserver('can-dom-mutate/node', function(){
+	test('removeChild dispatches onNodeRemoved', function (assert) {
+		var done = assert.async();
+		var parent = testUtils.getFixture();
+		var child = document.createElement('div');
+		parent.appendChild(child);
+
+		var undo = domMutate.onNodeRemoved(child, function() {
+			assert.ok(true, 'this was called');
+			undo();
+			done();
+		});
+
+		node.removeChild.call(parent, child);
+	});
+});
+
 moduleWithMutationObserver('can-dom-mutate/node', function () {
+	return;
 	test('appendChild should not call domMutate.dispatchNodeInsertion', function (assert) {
 		var parent = testUtils.getFixture();
 		var child = document.createElement('div');
@@ -284,11 +303,11 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 	*/
 
 	test('appendChild should not call dispatchNodeInsertion', function (assert) {
-		assert.expect(0);
+		assert.expect(1);
 		var fragment = document.createDocumentFragment();
 		var child = document.createElement('div');
-		var undo = mock(domMutate, 'dispatchNodeInsertion', function () {
-			assert.ok(false, 'This should never be called');
+		var undo = mock(domMutate, 'dispatchNodeInsertion', function (el, callback, dispatchConnected) {
+			assert.equal(dispatchConnected, false, 'We should not dispatch connected things');
 		});
 
 		node.appendChild.call(fragment, child);
@@ -296,14 +315,14 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 	});
 
 	test('insertBefore should not call dispatchNodeInsertion', function (assert) {
-		assert.expect(0);
+		assert.expect(1);
 		var fragment = document.createDocumentFragment();
 		var child = document.createElement('div');
 		var reference = document.createElement('span');
 		fragment.appendChild(reference);
 
-		var undo = mock(domMutate, 'dispatchNodeInsertion', function () {
-			assert.ok(false, 'This should never be called');
+		var undo = mock(domMutate, 'dispatchNodeInsertion', function (el, callback, dispatchConnected) {
+			assert.equal(dispatchConnected, false, 'We should not dispatch connected things');
 		});
 
 		node.insertBefore.call(fragment, child, reference);
@@ -311,13 +330,13 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 	});
 
 	test('removeChild should not call dispatchNodeRemoval', function (assert) {
-		assert.expect(0);
+		assert.expect(1);
 		var fragment = document.createDocumentFragment();
 		var child = document.createElement('div');
 		fragment.appendChild(child);
 
-		var undo = mock(domMutate, 'dispatchNodeRemoval', function () {
-			assert.ok(false, 'This should never be called');
+		var undo = mock(domMutate, 'dispatchNodeRemoval', function (el, callback, dispatchConnected) {
+			assert.equal(dispatchConnected, false, 'We should not dispatch connected things');
 		});
 
 		node.removeChild.call(fragment, child);
@@ -325,17 +344,17 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 	});
 
 	test('replaceChild should not call dispatchNodeRemoval+Insertion', function (assert) {
-		assert.expect(0);
+		assert.expect(2);
 		var fragment = document.createDocumentFragment();
 		var child = document.createElement('div');
 		var oldChild = document.createElement('span');
 		fragment.appendChild(oldChild);
 
-		var undoRemoval = mock(domMutate, 'dispatchNodeRemoval', function () {
-			assert.ok(false, 'This should never be called');
+		var undoRemoval = mock(domMutate, 'dispatchNodeRemoval', function (el, callback, dispatchConnected) {
+			assert.equal(dispatchConnected, false, 'We should not dispatch connected things');
 		});
-		var undoInsertion = mock(domMutate, 'dispatchNodeInsertion', function () {
-			assert.ok(false, 'This should never be called');
+		var undoInsertion = mock(domMutate, 'dispatchNodeInsertion', function (el, callback, dispatchConnected) {
+			assert.equal(dispatchConnected, false, 'We should not dispatch connected things');
 		});
 
 		node.replaceChild.call(fragment, child, oldChild);
@@ -347,7 +366,7 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 		var done = assert.async();
 		var doc1 = document.implementation.createHTMLDocument('doc1');
 		getDocument(doc1);
-		var undo = domMutate.onNodeRemoval(doc1.documentElement, function() {
+		var undo = domMutate.onNodeDisconnected(doc1.documentElement, function() {
 			assert.ok(true, 'this was called');
 			undo();
 			done();

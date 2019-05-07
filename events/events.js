@@ -77,6 +77,6 @@ function makeMutationEvent (defaultEventType, subscription, bubbles) {
 
 module.exports = namespace.domMutateDomEvents = {
 	attributes: makeMutationEvent('attributes', domMutate.onNodeAttributeChange),
-	inserted: makeMutationEvent('inserted', domMutate.onNodeInsertion, false),
-	removed: makeMutationEvent('removed', domMutate.onNodeRemoval)
+	inserted: makeMutationEvent('inserted', domMutate.onNodeConnected, false),
+	removed: makeMutationEvent('removed', domMutate.onNodeDisconnected)
 };

@@ -10,14 +10,11 @@ var getParents = util.getParents;
 
 var synthetic = {
 	dispatchNodeInsertion: function (container, node) {
-		if (isInDocument(node)) {
-			domMutate.dispatchNodeInsertion(node);
-		}
+		domMutate.dispatchNodeInsertion(node, null, isInDocument(node) );
+
 	},
 	dispatchNodeRemoval: function (container, node) {
-		if (isInDocument(container) && !isInDocument(node)) {
-			domMutate.dispatchNodeRemoval(node);
-		}
+		domMutate.dispatchNodeRemoval(node, null, isInDocument(container) && !isInDocument(node));
 	}
 };
 
@@ -175,7 +172,8 @@ var mutate = {};
 */
 
 function setMutateStrategy(observer) {
-	var strategy = observer ? normal : compat;
+	// TODO: later make this workable ...
+	var strategy = /*observer ? normal :*/ compat;
 	for (var key in strategy) {
 		mutate[key] = strategy[key];
 	}
