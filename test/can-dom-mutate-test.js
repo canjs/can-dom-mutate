@@ -10,7 +10,7 @@ var test = unit.test;
 var moduleMutationObserver = testUtils.moduleMutationObserver;
 
 moduleMutationObserver('can-dom-mutate', function () {
-	test('onNodeInsertion should be called when that node is inserted', function (assert) {
+	QUnit.test('onNodeInsertion should be called when that node is inserted', function (assert) {
 		var done = assert.async();
 		var parent = testUtils.getFixture();
 		var child = document.createElement('div');
@@ -27,7 +27,7 @@ moduleMutationObserver('can-dom-mutate', function () {
 	});
 
 
-	test('onNodeRemoval should be called when that node is removed', function (assert) {
+	QUnit.test('onNodeRemoval should be called when that node is removed', function (assert) {
 		var done = assert.async();
 		var parent = testUtils.getFixture();
 		var child = document.createElement('div');
@@ -44,7 +44,7 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.removeChild.call(parent, child);
 	});
 
-	test('onNodeAttributeChange should be called when that node\'s attributes change', function (assert) {
+	QUnit.test('onNodeAttributeChange should be called when that node\'s attributes change', function (assert) {
 		var done = assert.async();
 		var child = document.createElement('div');
 		var attributeName = 'foo';
@@ -62,7 +62,7 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.setAttribute.call(child, attributeName, 'baz');
 	});
 
-	test('onInserted should be called when any node is inserted', function (assert) {
+	QUnit.test('onInserted should be called when any node is inserted', function (assert) {
 		var done = assert.async();
 		var parent = testUtils.getFixture();
 		var child = document.createElement('div');
@@ -77,7 +77,7 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.appendChild.call(parent, child);
 	});
 
-	test('onInserted should be called with inserted fragment subtree', function (assert) {
+	QUnit.test('onInserted should be called with inserted fragment subtree', function (assert) {
 		assert.expect(3);
 		var done = assert.async();
 		var parent = testUtils.getFixture();
@@ -117,7 +117,7 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.appendChild.call(parent, fragment);
 	});
 
-	test('onRemoval should be called when any node is removed', function (assert) {
+	QUnit.test('onRemoval should be called when any node is removed', function (assert) {
 		var done = assert.async();
 		var parent = testUtils.getFixture();
 		var child = document.createElement('div');
@@ -133,7 +133,7 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.removeChild.call(parent, child);
 	});
 
-	test('onNodeInsertion should be called when that node is inserted into a different document', function(assert){
+	QUnit.test('onNodeInsertion should be called when that node is inserted into a different document', function(assert){
 		var done = assert.async();
 		var parent = testUtils.getFixture();
 
@@ -151,7 +151,7 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.appendChild.call(parent, child);
 	});
 
-	test('onNodeRemoval does not leak when given a document fragment', function(assert){
+	QUnit.test('onNodeRemoval does not leak when given a document fragment', function(assert){
 		var doc1 = document.implementation.createHTMLDocument('doc1');
 		var frag = doc1.createDocumentFragment();
 		frag.appendChild(doc1.createElement('div'));
@@ -167,7 +167,7 @@ moduleMutationObserver('can-dom-mutate', function () {
 		assert.equal(getListenerCount(), previousListenerCount, "No new listeners added for this fragment");
 	});
 
-	test('onNodeInsertion should be called when textNode is inserted within a parent', function (assert) {
+	QUnit.test('onNodeInsertion should be called when textNode is inserted within a parent', function (assert) {
 		var done = assert.async();
 		var parent = testUtils.getFixture();
 		var child = document.createTextNode("Hello World");
@@ -185,13 +185,13 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.appendChild.call(parent, wrapper);
 	});
 
-	test('changing the MutationObserver tears down the mutation observer', 2, function (assert) {
+	QUnit.test('changing the MutationObserver tears down the mutation observer', 2, function (assert) {
 		var done = assert.async();
 		var parent = testUtils.getFixture();
 		var wrapper = document.createElement("div");
 
 		var undoA = domMutate.onNodeInsertion(wrapper, function () {
-			QUnit.ok(true, "this will still be called b/c it's on the document");
+			assert.ok(true, "this will still be called b/c it's on the document");
 			undoA();
 		});
 		MUTATION_OBSERVER(MUTATION_OBSERVER());
