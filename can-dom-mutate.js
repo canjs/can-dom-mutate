@@ -314,12 +314,15 @@ function addNodeListener(listenerKey, observerKey, isAttributes) {
 		if (isAttributes) {
 			stopObserving = observeMutations(target, observerKey, attributeMutationConfig, handleAttributeMutations);
 		} else {
-			stopObserving = observeMutations(DOCUMENT(), observerKey, treeMutationConfig, handleTreeMutations);
+			//stopObserving = observeMutations(DOCUMENT(), observerKey, treeMutationConfig, handleTreeMutations);
 		}
 
 		addTargetListener(target, listenerKey, listener);
 		return function removeNodeListener() {
-			stopObserving();
+			if(stopObserving) {
+				stopObserving();
+			}
+
 			removeTargetListener(target, listenerKey, listener);
 		};
 	});
@@ -572,7 +575,7 @@ domMutate = {
 		doc = doc || DOCUMENT();
 		var data = dataStore.get(doc);
 		if(data) {
-			if(data.domMutationTreeData.observer) {
+			if(data.domMutationTreeData && data.domMutationTreeData.observer) {
 				var records = data.domMutationTreeData.observer.takeRecords();
 				handleTreeMutations(records);
 			}

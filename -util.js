@@ -124,7 +124,7 @@ function getNodesWithTreeWalker(rootNode) {
 	// IE11 throws if createTreeWalker is called on a non-ElementNode
 	var walker = isElementNode(rootNode) && getDocument().createTreeWalker(
 		rootNode,
-		NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT /*| NodeFilter.SHOW_COMMENT*/,
+		NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_COMMENT,
 		treeWalkerFilter,
 		false
 	);
