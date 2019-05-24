@@ -8,7 +8,7 @@ var testUtils = require('../test/test-utils');
 var test = unit.test;
 
 testUtils.moduleWithMutationObserver('can-dom-mutate/dom-events', function () {
-	test('inserted', function (assert) {
+	QUnit.test('inserted', function (assert) {
 		var done = assert.async();
 		var fixture = testUtils.getFixture();
 		var parent = document.createElement('div');

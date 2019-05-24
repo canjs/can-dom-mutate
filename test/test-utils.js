@@ -13,10 +13,10 @@ function moduleWithMutationObserver (title, tests) {
 
 function moduleWithoutMutationObserver (title, tests) {
 	var hooks = {
-		setup: function () {
+		beforeEach: function () {
 			globals.setKeyValue(mutationObserverKey, null);
 		},
-		teardown: function () {
+		afterEach: function () {
 			globals.deleteKeyValue(mutationObserverKey);
 		}
 	};
