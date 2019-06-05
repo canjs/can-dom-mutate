@@ -6,7 +6,7 @@ var getMutationObserver = require('can-globals/mutation-observer/mutation-observ
 var namespace = require('can-namespace');
 var DOCUMENT = require("can-globals/document/document");
 var canReflect = require("can-reflect");
-var canSymbol = require("can-symbol");
+// var canSymbol = require("can-symbol");
 
 var util = require('./-util');
 var eliminate = util.eliminate;
@@ -14,9 +14,9 @@ var subscription = util.subscription;
 var isDocumentElement = util.isDocumentElement;
 var getAllNodes = util.getAllNodes;
 
-var slice = Array.prototype.slice;
+// var slice = Array.prototype.slice;
 
-var onRemovedSymbol = canSymbol.for("can.onNodeRemoved");
+// var onRemovedSymbol = canSymbol.for("can.onNodeRemoved");
 
 var domMutate, dispatchInsertion, dispatchRemoval, dispatchAttributeChange;
 var dataStore = new WeakMap();
@@ -121,7 +121,7 @@ var recordsAndCallbacks = null;
 
 function flushCallbacks(callbacks, arg){
 	var callbacksCount = callbacks.length;
-	var safeCallbacks = callbacks.slice(0)
+	var safeCallbacks = callbacks.slice(0);
 	for(var c = 0; c < callbacksCount; c++){
 		safeCallbacks[c](arg);
 	}
@@ -138,7 +138,7 @@ function flushRecords(){
 
 	for (var i = 0; i < batchCount; i++) {
 		var batchData = safeBatch[i];
-		flushCallbacks(batchData.callbacks, batchData.arg)
+		flushCallbacks(batchData.callbacks, batchData.arg);
 	}
 }
 
@@ -147,7 +147,7 @@ function flushAsync(callbacks, arg) {
 		recordsAndCallbacks = [{arg: arg, callbacks: callbacks}];
 		nextTick(flushRecords);
 	} else {
-		recordsAndCallbacks.push({arg: arg, callbacks: callbacks})
+		recordsAndCallbacks.push({arg: arg, callbacks: callbacks});
 	}
 }
 
@@ -289,10 +289,10 @@ function handleAttributeMutations(mutations) {
 	}
 }
 
-var treeMutationConfig = {
-	subtree: true,
-	childList: true
-};
+// var treeMutationConfig = {
+// 	subtree: true,
+// 	childList: true
+// };
 
 var attributeMutationConfig = {
 	attributes: true,
