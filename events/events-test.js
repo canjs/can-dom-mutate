@@ -8,7 +8,7 @@ var testUtils = require('../test/test-utils');
 var test = unit.test;
 
 testUtils.moduleWithMutationObserver('can-dom-mutate/dom-events', function () {
-	test('inserted', function (assert) {
+	QUnit.test('inserted', function (assert) {
 		// make sure QUnit writing out the page is fully finished.
 		domMutate.flushRecords();
 		var done = assert.async();
