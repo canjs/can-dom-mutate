@@ -6,10 +6,10 @@ var domMutate = require('../can-dom-mutate');
 var util = require('../-util');
 
 var getParents = util.getParents;
-var isConnected = util.isConnected;
 
 var compat = {
 	replaceChild: function (newChild, oldChild) {
+		var isConnected = util.isConnected;
 		var newChildren = getParents(newChild);
 		var result = this.replaceChild(newChild, oldChild);
 		domMutate.dispatchNodeRemoval(oldChild, null, isConnected(this) && !isConnected(oldChild));
@@ -43,6 +43,7 @@ var compatData = [
 	['removeChild', 'Removal']
 ];
 compatData.forEach(function (pair) {
+	var isConnected = util.isConnected;
 	var nodeMethod = pair[0];
 	var dispatchMethod = 'dispatchNode' + pair[1];
 	compat[nodeMethod] = function (node) {
@@ -59,7 +60,7 @@ var normal = {};
 var nodeMethods = ['appendChild', 'insertBefore', 'removeChild', 'replaceChild', 'setAttribute', 'removeAttribute'];
 nodeMethods.forEach(function (methodName) {
 	normal[methodName] = function () {
-		if(isConnected(this)) {
+		if(util.isConnected(this)) {
 			return this[methodName].apply(this, arguments);
 		} else {
 			return compat[methodName].apply(this, arguments);

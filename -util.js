@@ -52,7 +52,10 @@ function setIsConnected(global) {
 		};
 }
 setIsConnected(globals.getKeyValue("global"));
-globals.onKeyValue("global", setIsConnected);
+globals.onKeyValue("global", function(global) {
+	setIsConnected(global);
+	module.exports.isConnected = isConnected;
+});
 
 function getChildren (parentNode) {
 	var nodes = [];
