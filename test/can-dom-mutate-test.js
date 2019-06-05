@@ -185,13 +185,14 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.appendChild.call(parent, wrapper);
 	});
 
-	test('changing the MutationObserver tears down the mutation observer', 2, function (assert) {
+	test('changing the MutationObserver tears down the mutation observer', function (assert) {
+		assert.expect(2);
 		var done = assert.async();
 		var parent = testUtils.getFixture();
 		var wrapper = document.createElement("div");
 
 		var undoA = domMutate.onNodeConnected(wrapper, function () {
-			QUnit.ok(true, "this will still be called b/c it's on the document");
+			assert.ok(true, "this will still be called b/c it's on the document");
 			undoA();
 		});
 		MUTATION_OBSERVER(MUTATION_OBSERVER());
@@ -218,7 +219,7 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.appendChild.call(parent, wrapper);
 
 		domMutate.flushRecords();
-		QUnit.ok(called, "insertion run immediately");
+		assert.ok(called, "insertion run immediately");
 		setTimeout(done, 1);
 	});
 });

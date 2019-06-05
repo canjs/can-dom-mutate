@@ -1,6 +1,7 @@
 @module {{}} can-dom-mutate
 @parent can-dom-utilities
 @collection can-infrastructure
+@package ./package.json
 
 @description Dispatch and listen for DOM mutations.
 @group can-dom-mutate.static 0 methods
