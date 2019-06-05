@@ -289,10 +289,10 @@ function handleAttributeMutations(mutations) {
 	}
 }
 
-// var treeMutationConfig = {
-// 	subtree: true,
-// 	childList: true
-// };
+var treeMutationConfig = {
+	subtree: true,
+	childList: true
+};
 
 var attributeMutationConfig = {
 	attributes: true,
@@ -314,7 +314,7 @@ function addNodeListener(listenerKey, observerKey, isAttributes) {
 		if (isAttributes) {
 			stopObserving = observeMutations(target, observerKey, attributeMutationConfig, handleAttributeMutations);
 		} else {
-			//stopObserving = observeMutations(DOCUMENT(), observerKey, treeMutationConfig, handleTreeMutations);
+			stopObserving = observeMutations(DOCUMENT(), observerKey, treeMutationConfig, handleTreeMutations);
 		}
 
 		addTargetListener(target, listenerKey, listener);
@@ -491,7 +491,7 @@ domMutate = {
 	onNodeConnected: addNodeConnectedListener,
 	onNodeInsertion: function(){
 		// TODO: remove in prod
-		console.warn("don't use this");
+		console.warn("can-dom-mutate: Use onNodeConnected instead of onNodeInsertion");
 		return addNodeConnectedListener.apply(this, arguments);
 	},
 	/**
@@ -508,7 +508,7 @@ domMutate = {
 	onNodeDisconnected: addNodeDisconnectedListener,
 	onNodeRemoval: function(){
 		// TODO: remove in prod
-		console.warn("don't use this");
+		console.warn("can-dom-mutate: Use onNodeDisconnected instead of onNodeRemoval");
 		return addNodeDisconnectedListener.apply(this, arguments);
 	},
 	/**
@@ -538,7 +538,7 @@ domMutate = {
 	onDisconnected: addDisconnectedListener,
 	onRemoval: function(){
 		// TODO: remove in prod
-		console.warn("don't use this");
+		console.warn("can-dom-mutate: Use onDisconnected instead of onRemoval");
 		return addDisconnectedListener.apply(this, arguments);
 	},
 	/**
@@ -555,7 +555,7 @@ domMutate = {
 	onConnected: addConnectedListener,
 	onInsertion: function(){
 		// TODO: remove in prod
-		console.warn("don't use this");
+		console.warn("can-dom-mutate: Use onConnected instead of onInsertion");
 		return addConnectedListener.apply(this, arguments);
 	},
 	/**

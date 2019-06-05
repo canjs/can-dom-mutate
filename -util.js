@@ -1,5 +1,6 @@
 "use strict";
 var getDocument = require("can-globals/document/document");
+var globals = require("can-globals");
 
 function eliminate(array, item) {
 	var index = array.indexOf(item);
@@ -29,15 +30,6 @@ function contains(parent, child){
 	}
 }
 
-function isInDocument (node) {
-	var root = getDocument();
-	if (root === node) {
-		return true;
-	}
-
-	return contains(root, node);
-}
-
 function isDocumentElement (node) {
 	return getDocument().documentElement === node;
 }
@@ -49,6 +41,18 @@ function isFragment (node) {
 function isElementNode (node) {
 	return !!(node && node.nodeType === 1);
 }
+
+var isConnected; 
+function setIsConnected(global) {
+	isConnected = 'isConnected' in global.Node.prototype ?
+		function(node) { return node.isConnected; } :
+		function(node) { 
+			var doc = getDocument();
+			return node === doc || contains(doc, node);
+		};
+}
+setIsConnected(globals.getKeyValue("global"));
+globals.onKeyValue("global", setIsConnected);
 
 function getChildren (parentNode) {
 	var nodes = [];
@@ -162,7 +166,6 @@ function subscription (fn) {
 
 module.exports = {
 	eliminate: eliminate,
-	isInDocument: isInDocument,
 	getDocument: getDocument,
 	isDocumentElement: isDocumentElement,
 	isFragment: isFragment,
@@ -170,5 +173,6 @@ module.exports = {
 	getAllNodes: getAllNodes,
 	getChildren: getChildren,
 	subscription: subscription,
-	addToSet: addToSet
+	addToSet: addToSet,
+	isConnected: isConnected
 };

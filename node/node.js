@@ -5,26 +5,16 @@ var namespace = require('can-namespace');
 var domMutate = require('../can-dom-mutate');
 var util = require('../-util');
 
-var isInDocument = util.isInDocument;
 var getParents = util.getParents;
-
-var synthetic = {
-	dispatchNodeInsertion: function (container, node) {
-		domMutate.dispatchNodeInsertion(node, null, isInDocument(node) );
-
-	},
-	dispatchNodeRemoval: function (container, node) {
-		domMutate.dispatchNodeRemoval(node, null, isInDocument(container) && !isInDocument(node));
-	}
-};
+var isConnected = util.isConnected;
 
 var compat = {
 	replaceChild: function (newChild, oldChild) {
 		var newChildren = getParents(newChild);
 		var result = this.replaceChild(newChild, oldChild);
-		synthetic.dispatchNodeRemoval(this, oldChild);
+		domMutate.dispatchNodeRemoval(oldChild, null, isConnected(this) && !isConnected(oldChild));
 		for (var i = 0; i < newChildren.length; i++) {
-			synthetic.dispatchNodeInsertion(this, newChildren[i]);
+			domMutate.dispatchNodeInsertion(newChildren[i], null, isConnected(this));
 		}
 		return result;
 	},
@@ -59,7 +49,7 @@ compatData.forEach(function (pair) {
 		var nodes = getParents(node);
 		var result = this[nodeMethod].apply(this, arguments);
 		for (var i = 0; i < nodes.length; i++) {
-			synthetic[dispatchMethod](this, nodes[i]);
+			domMutate[dispatchMethod](nodes[i], null, isConnected(this) && (pair[1] === 'Removal' ? !isConnected(nodes[i]) : true));
 		}
 		return result;
 	};
@@ -69,7 +59,11 @@ var normal = {};
 var nodeMethods = ['appendChild', 'insertBefore', 'removeChild', 'replaceChild', 'setAttribute', 'removeAttribute'];
 nodeMethods.forEach(function (methodName) {
 	normal[methodName] = function () {
-		return this[methodName].apply(this, arguments);
+		if(isConnected(this)) {
+			return this[methodName].apply(this, arguments);
+		} else {
+			return compat[methodName].apply(this, arguments);
+		}
 	};
 });
 
@@ -173,7 +167,8 @@ var mutate = {};
 
 function setMutateStrategy(observer) {
 	// TODO: later make this workable ...
-	var strategy = /*observer ? normal :*/ compat;
+	var strategy = observer ? normal : compat;
+
 	for (var key in strategy) {
 		mutate[key] = strategy[key];
 	}
