@@ -219,7 +219,7 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.appendChild.call(parent, wrapper);
 
 		domMutate.flushRecords();
-		QUnit.ok(called, "insertion run immediately");
+		assert.ok(called, "insertion run immediately");
 		setTimeout(done, 1);
 	});
 });
