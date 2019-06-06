@@ -1,6 +1,5 @@
 "use strict";
 var getDocument = require("can-globals/document/document");
-var globals = require("can-globals");
 
 function eliminate(array, item) {
 	var index = array.indexOf(item);
@@ -41,28 +40,6 @@ function isFragment (node) {
 function isElementNode (node) {
 	return !!(node && node.nodeType === 1);
 }
-
-var isConnected;
-function getIsConnectedFromNode(node) {
-	return node.isConnected;
-}
-function getIsConnectedFromDocument(node) { 
-	var doc = node.ownerDocument;
-	// if node *is* the document, ownerDocument is null
-	return doc === null || contains(doc, node);
-}
-
-function setIsConnected(doc) {
-	var node = doc.createTextNode("");
-	isConnected = 'isConnected' in node.constructor.prototype ?
-		getIsConnectedFromNode :
-		getIsConnectedFromDocument;
-}
-setIsConnected(globals.getKeyValue("document"));
-globals.onKeyValue("document", function(doc) {
-	setIsConnected(doc);
-	module.exports.isConnected = isConnected;
-});
 
 function getChildren (parentNode) {
 	var nodes = [];
@@ -184,5 +161,5 @@ module.exports = {
 	getChildren: getChildren,
 	subscription: subscription,
 	addToSet: addToSet,
-	isConnected: isConnected
+	contains: contains
 };

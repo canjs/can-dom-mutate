@@ -589,4 +589,10 @@ domMutate = {
 	onNodeRemoved: addNodeRemovedListener
 };
 
+//!steal-remove-start
+if(process.env.NODE_ENV !== "production") {
+	domMutate.dataStore = dataStore;
+}
+//!steal-remove-end
+
 module.exports = namespace.domMutate = domMutate;

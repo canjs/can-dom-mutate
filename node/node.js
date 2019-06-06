@@ -6,10 +6,31 @@ var domMutate = require('../can-dom-mutate');
 var util = require('../-util');
 
 var getParents = util.getParents;
+var contains = util.contains;
+
+var isConnected;
+function getIsConnectedFromNode(node) {
+	return node.isConnected;
+}
+function getIsConnectedFromDocument(node) { 
+	var doc = node.ownerDocument;
+	// if node *is* the document, ownerDocument is null
+	// However, CanSimpleDom implements this incorrectly, and a document's ownerDocument is itself,
+	//   so make both checks
+	return doc === null || doc === node || contains(doc, node);
+}
+
+function setIsConnected(doc) {
+	var node = doc.createTextNode("");
+	isConnected = 'isConnected' in node.constructor.prototype ?
+		getIsConnectedFromNode :
+		getIsConnectedFromDocument;
+}
+setIsConnected(globals.getKeyValue("document"));
+globals.onKeyValue("document", setIsConnected);
 
 var compat = {
 	replaceChild: function (newChild, oldChild) {
-		var isConnected = util.isConnected;
 		var newChildren = getParents(newChild);
 		var result = this.replaceChild(newChild, oldChild);
 		domMutate.dispatchNodeRemoval(oldChild, null, isConnected(this) && !isConnected(oldChild));
@@ -43,7 +64,6 @@ var compatData = [
 	['removeChild', 'Removal']
 ];
 compatData.forEach(function (pair) {
-	var isConnected = util.isConnected;
 	var nodeMethod = pair[0];
 	var dispatchMethod = 'dispatchNode' + pair[1];
 	compat[nodeMethod] = function (node) {
@@ -60,7 +80,7 @@ var normal = {};
 var nodeMethods = ['appendChild', 'insertBefore', 'removeChild', 'replaceChild', 'setAttribute', 'removeAttribute'];
 nodeMethods.forEach(function (methodName) {
 	normal[methodName] = function () {
-		if(util.isConnected(this)) {
+		if(isConnected(this)) {
 			return this[methodName].apply(this, arguments);
 		} else {
 			return compat[methodName].apply(this, arguments);

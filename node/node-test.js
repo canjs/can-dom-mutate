@@ -3,6 +3,7 @@ var domMutate = require('../can-dom-mutate');
 var getDocument = require('can-globals/document/document');
 var node = require('./node');
 var testUtils = require('../test/test-utils');
+var makeSimpleDocument = require("can-vdom/make-document/make-document");
 
 var test = unit.test;
 var moduleWithMutationObserver = testUtils.moduleWithMutationObserver;
@@ -16,7 +17,7 @@ function neverCall(assert, obj, methodName) {
 	});
 }
 
-moduleMutationObserver('can-dom-mutate/node', function(){
+function onNodeRemovedTest(){
 	test('removeChild dispatches onNodeRemoved', function (assert) {
 		var done = assert.async();
 		var parent = testUtils.getFixture();
@@ -31,10 +32,11 @@ moduleMutationObserver('can-dom-mutate/node', function(){
 
 		node.removeChild.call(parent, child);
 	});
-});
+}
+moduleMutationObserver('can-dom-mutate/node with real document', getDocument(), onNodeRemovedTest);
+moduleMutationObserver('can-dom-mutate/node with SimpleDocument', makeSimpleDocument(), onNodeRemovedTest);
 
 moduleWithMutationObserver('can-dom-mutate/node', function () {
-	return;
 	QUnit.test('appendChild should not call domMutate.dispatchNodeInsertion', function (assert) {
 		var parent = testUtils.getFixture();
 		var child = document.createElement('div');
@@ -88,8 +90,10 @@ moduleWithMutationObserver('can-dom-mutate/node', function () {
 	});
 
 	QUnit.test('setAttribute should not call domMutate.dispatchNodeAttributeChange', function (assert) {
+		var parent = testUtils.getFixture();
 		var element = document.createElement('div');
 		var undo = neverCall(assert, domMutate, 'dispatchNodeAttributeChange');
+		parent.appendChild(element);
 
 		node.setAttribute.call(element, 'data-foo', 'bar');
 		undo();
@@ -98,8 +102,10 @@ moduleWithMutationObserver('can-dom-mutate/node', function () {
 	});
 
 	QUnit.test('removeAttribute should not call domMutate.dispatchNodeAttributeChange', function (assert) {
+		var parent = testUtils.getFixture();
 		var element = document.createElement('div');
 		var undo = neverCall(assert, domMutate, 'dispatchNodeAttributeChange');
+		parent.appendChild(element);
 
 		node.removeAttribute.call(element, 'data-foo');
 		node.setAttribute.call(element, 'data-foo', 'bar');
@@ -110,11 +116,12 @@ moduleWithMutationObserver('can-dom-mutate/node', function () {
 	});
 });
 
-moduleWithoutMutationObserver('can-dom-mutate/node', function () {
+function withoutMutationObserverTests () {
 	QUnit.test('appendChild should call domMutate.dispatchNodeInsertion', function (assert) {
+		var doc = getDocument();
 		var done = assert.async();
 		var parent = testUtils.getFixture();
-		var child = document.createElement('div');
+		var child = doc.createElement('div');
 
 		var undo = mock(domMutate, 'dispatchNodeInsertion', function (node, callback) {
 			assert.equal(node, child, 'Should pass the child being appended');
@@ -128,10 +135,11 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 	});
 
 	function getFragmentInsertionTest () {
-		var fragment = document.createDocumentFragment();
-		var child1 = document.createElement('div');
-		var child2 = document.createElement('div');
-		var grandchild = document.createElement('div');
+		var doc = getDocument();
+		var fragment = doc.createDocumentFragment();
+		var child1 = doc.createElement('div');
+		var child2 = doc.createElement('div');
+		var grandchild = doc.createElement('div');
 		fragment.appendChild(child1);
 		fragment.appendChild(child2);
 		child2.appendChild(grandchild);
@@ -162,9 +170,10 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 
 	QUnit.test('insertBefore should call domMutate.dispatchNodeInsertion', function (assert) {
 		var done = assert.async();
+		var doc = getDocument();
 		var parent = testUtils.getFixture();
-		var sibling = document.createElement('span');
-		var child = document.createElement('div');
+		var sibling = doc.createElement('span');
+		var child = doc.createElement('div');
 
 		var undo = mock(domMutate, 'dispatchNodeInsertion', function (node, callback) {
 			assert.equal(node, child, 'Should pass the child being appended');
@@ -180,8 +189,9 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 
 	QUnit.test('insertBefore should dispatch fragment children to dispatchNodeInserted', function (assert) {
 		assert.expect(2);
+		var doc = getDocument();
 		var parent = testUtils.getFixture();
-		var sibling = document.createElement('div');
+		var sibling = doc.createElement('div');
 		parent.appendChild(sibling);
 
 		var fragTest = getFragmentInsertionTest();
@@ -191,8 +201,9 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 
 	QUnit.test('removeChild should call domMutate.dispatchNodeRemoval', function (assert) {
 		var done = assert.async();
+		var doc = getDocument();
 		var parent = testUtils.getFixture();
-		var child = document.createElement('div');
+		var child = doc.createElement('div');
 
 		var undo = mock(domMutate, 'dispatchNodeRemoval', function (node, callback) {
 			assert.equal(node, child, 'Should pass the child being removed');
@@ -208,9 +219,10 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 
 	QUnit.test('replaceChild should call domMutate.dispatchNodeRemoval+Insertion', function (assert) {
 		var done = assert.async();
+		var doc = getDocument();
 		var parent = testUtils.getFixture();
-		var sibling = document.createElement('span');
-		var child = document.createElement('div');
+		var sibling = doc.createElement('span');
+		var child = doc.createElement('div');
 		var isSiblingRemoved = false;
 
 		var undoRemoval = mock(domMutate, 'dispatchNodeRemoval', function (node, callback) {
@@ -236,8 +248,9 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 
 	QUnit.test('replaceChild should dispatch fragment children to dispatchNodeInserted', function (assert) {
 		assert.expect(3);
+		var doc = getDocument();
 		var parent = testUtils.getFixture();
-		var sibling = document.createElement('div');
+		var sibling = doc.createElement('div');
 		parent.appendChild(sibling);
 
 		var fragTest = getFragmentInsertionTest();
@@ -253,7 +266,8 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 
 	QUnit.test('setAttribute should call domMutate.dispatchNodeAttributeChange', function (assert) {
 		var done = assert.async();
-		var element = document.createElement('div');
+		var doc = getDocument();
+		var element = doc.createElement('div');
 		element.setAttribute('data-foo', 'bar');
 
 		var undo = mock(domMutate, 'dispatchNodeAttributeChange', function (node, attributeName, oldAttributeValue, callback) {
@@ -271,7 +285,8 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 
 	QUnit.test('removeAttribute should call domMutate.dispatchNodeAttributeChange', function (assert) {
 		var done = assert.async();
-		var element = document.createElement('div');
+		var doc = getDocument();
+		var element = doc.createElement('div');
 		element.setAttribute('data-foo', 'bar');
 
 		var undo = mock(domMutate, 'dispatchNodeAttributeChange', function (node, attributeName, oldAttributeValue, callback) {
@@ -286,9 +301,12 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 
 		node.removeAttribute.call(element, 'data-foo');
 	});
-});
+};
+moduleWithoutMutationObserver('can-dom-mutate/node with real document', getDocument(), withoutMutationObserverTests);
+moduleWithoutMutationObserver('can-dom-mutate/node with SimpleDocument', makeSimpleDocument(), withoutMutationObserverTests);
 
-moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function () {
+
+function notInDocumentTests() {
 	/*
 		We do not want insertion events to dispatched when a node
 		is inserted into a parent which is not in the document.
@@ -304,8 +322,9 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 
 	QUnit.test('appendChild should not call dispatchNodeInsertion', function (assert) {
 		assert.expect(1);
-		var fragment = document.createDocumentFragment();
-		var child = document.createElement('div');
+		var doc = getDocument();
+		var fragment = doc.createDocumentFragment();
+		var child = doc.createElement('div');
 		var undo = mock(domMutate, 'dispatchNodeInsertion', function (el, callback, dispatchConnected) {
 			assert.equal(dispatchConnected, false, 'We should not dispatch connected things');
 		});
@@ -316,9 +335,10 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 
 	QUnit.test('insertBefore should not call dispatchNodeInsertion', function (assert) {
 		assert.expect(1);
-		var fragment = document.createDocumentFragment();
-		var child = document.createElement('div');
-		var reference = document.createElement('span');
+		var doc = getDocument();
+		var fragment = doc.createDocumentFragment();
+		var child = doc.createElement('div');
+		var reference = doc.createElement('span');
 		fragment.appendChild(reference);
 
 		var undo = mock(domMutate, 'dispatchNodeInsertion', function (el, callback, dispatchConnected) {
@@ -331,8 +351,9 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 
 	QUnit.test('removeChild should not call dispatchNodeRemoval', function (assert) {
 		assert.expect(1);
-		var fragment = document.createDocumentFragment();
-		var child = document.createElement('div');
+		var doc = getDocument();
+		var fragment = doc.createDocumentFragment();
+		var child = doc.createElement('div');
 		fragment.appendChild(child);
 
 		var undo = mock(domMutate, 'dispatchNodeRemoval', function (el, callback, dispatchConnected) {
@@ -345,9 +366,10 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 
 	QUnit.test('replaceChild should not call dispatchNodeRemoval+Insertion', function (assert) {
 		assert.expect(2);
-		var fragment = document.createDocumentFragment();
-		var child = document.createElement('div');
-		var oldChild = document.createElement('span');
+		var doc = getDocument();
+		var fragment = doc.createDocumentFragment();
+		var child = doc.createElement('div');
+		var oldChild = doc.createElement('span');
 		fragment.appendChild(oldChild);
 
 		var undoRemoval = mock(domMutate, 'dispatchNodeRemoval', function (el, callback, dispatchConnected) {
@@ -364,7 +386,8 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 
 	QUnit.test('removeChild on the documentElement', function(assert) {
 		var done = assert.async();
-		var doc1 = document.implementation.createHTMLDocument('doc1');
+		var doc = getDocument();
+		var doc1 = doc.implementation.createHTMLDocument('doc1');
 		getDocument(doc1);
 		var undo = domMutate.onNodeDisconnected(doc1.documentElement, function() {
 			assert.ok(true, 'this was called');
@@ -374,6 +397,8 @@ moduleWithoutMutationObserver('can-dom-mutate/node (not in document)', function 
 
 
 		node.removeChild.call(doc1, doc1.documentElement);
-		getDocument(document);
+		getDocument(doc);
 	});
-});
+}
+moduleWithoutMutationObserver('can-dom-mutate/node (not in real document)', getDocument(), notInDocumentTests);
+moduleWithoutMutationObserver('can-dom-mutate/node (not in SimpleDocument)', makeSimpleDocument(), notInDocumentTests);
