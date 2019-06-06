@@ -42,18 +42,25 @@ function isElementNode (node) {
 	return !!(node && node.nodeType === 1);
 }
 
-var isConnected; 
-function setIsConnected(global) {
-	isConnected = 'isConnected' in global.Node.prototype ?
-		function(node) { return node.isConnected; } :
-		function(node) { 
-			var doc = getDocument();
-			return node === doc || contains(doc, node);
-		};
+var isConnected;
+function getIsConnectedFromNode(node) {
+	return node.isConnected;
 }
-setIsConnected(globals.getKeyValue("global"));
-globals.onKeyValue("global", function(global) {
-	setIsConnected(global);
+function getIsConnectedFromDocument(node) { 
+	var doc = node.ownerDocument;
+	// if node *is* the document, ownerDocument is null
+	return doc === null || contains(doc, node);
+}
+
+function setIsConnected(doc) {
+	var node = doc.createTextNode("");
+	isConnected = 'isConnected' in node.constructor.prototype ?
+		getIsConnectedFromNode :
+		getIsConnectedFromDocument;
+}
+setIsConnected(globals.getKeyValue("document"));
+globals.onKeyValue("document", function(doc) {
+	setIsConnected(doc);
 	module.exports.isConnected = isConnected;
 });
 
