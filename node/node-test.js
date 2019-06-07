@@ -1,7 +1,6 @@
 var unit = require('steal-qunit');
 var domMutate = require('../can-dom-mutate');
 var getDocument = require('can-globals/document/document');
-var isNode = require('can-globals/is-node/is-node');
 var node = require('./node');
 var testUtils = require('../test/test-utils');
 var makeSimpleDocument = require("can-vdom/make-document/make-document");
@@ -18,29 +17,31 @@ function neverCall(assert, obj, methodName) {
 	});
 }
 
-// browser-only tests.
-if(!isNode()) {
-	unit.module("can-dom-mutate/node document selector");
-	test("isConnected uses isConnected where available", function(assert) {
-		assert.expect(4);
-		var doc = getDocument();
-		var fakenode = {
-			get isConnected() {
-				assert.strictEqual(doc.constructor, getDocument().constructor, "with real document")
-				return true;
-			},
-			get ownerDocument() {
+unit.module("can-dom-mutate/node document selector");
+test("isConnected() uses isConnected where available", function(assert) {
+	assert.expect(4);
+	var doc = getDocument();
+	var fakenode = {
+		get isConnected() {
+			assert.strictEqual(doc.constructor, getDocument().constructor, "with real document")
+			return true;
+		},
+		get ownerDocument() {
+			if ('isConnected' in doc) {
 				assert.notStrictEqual(doc.constructor, getDocument().constructor, "with SimpleDocument")
-				return null;
+			} else {
+				// IE 11 doesn't support isConnected, so both isConnected() calls will go through here
+				assert.ok(true, "Native Node.prototype does not support isConnected");					
 			}
-		};
+			return null;
+		}
+	};
 
-		assert.ok(node.isConnected(fakenode), "Real document connected");
-		getDocument(makeSimpleDocument());
-		assert.ok(node.isConnected(fakenode), "SimpleDocument connected");
-		getDocument(doc);
-	});
-}
+	assert.ok(node.isConnected(fakenode), "Real document connected");
+	getDocument(makeSimpleDocument());
+	assert.ok(node.isConnected(fakenode), "SimpleDocument connected");
+	getDocument(doc);
+});
 
 
 function onNodeRemovedTest(){
