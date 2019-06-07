@@ -25,6 +25,13 @@ function setIsConnected(doc) {
 	isConnected = 'isConnected' in node.constructor.prototype ?
 		getIsConnectedFromNode :
 		getIsConnectedFromDocument;
+	//!steal-remove-start
+	if(process.env.NODE_ENV !== "production") {
+		if(mutate) {
+			mutate.isConnected = isConnected;
+		}
+	}
+	//!steal-remove-end
 }
 setIsConnected(globals.getKeyValue("document"));
 globals.onKeyValue("document", setIsConnected);
@@ -198,5 +205,11 @@ function setMutateStrategy(observer) {
 var mutationObserverKey = 'MutationObserver';
 setMutateStrategy(globals.getKeyValue(mutationObserverKey));
 globals.onKeyValue(mutationObserverKey, setMutateStrategy);
+
+//!steal-remove-start
+if(process.env.NODE_ENV !== "production") {
+	mutate.isConnected = isConnected;
+}
+//!steal-remove-end
 
 module.exports = namespace.domMutateNode = domMutate.node = mutate;

@@ -1,6 +1,7 @@
 var unit = require('steal-qunit');
 var domMutate = require('../can-dom-mutate');
 var getDocument = require('can-globals/document/document');
+var isNode = require('can-globals/is-node/is-node');
 var node = require('./node');
 var testUtils = require('../test/test-utils');
 var makeSimpleDocument = require("can-vdom/make-document/make-document");
@@ -16,6 +17,31 @@ function neverCall(assert, obj, methodName) {
 		assert.ok(false, methodName + ' should not be called');
 	});
 }
+
+// browser-only tests.
+if(!isNode()) {
+	unit.module("can-dom-mutate/node document selector");
+	test("isConnected uses isConnected where available", function(assert) {
+		assert.expect(4);
+		var doc = getDocument();
+		var fakenode = {
+			get isConnected() {
+				assert.strictEqual(doc.constructor, getDocument().constructor, "with real document")
+				return true;
+			},
+			get ownerDocument() {
+				assert.notStrictEqual(doc.constructor, getDocument().constructor, "with SimpleDocument")
+				return null;
+			}
+		};
+
+		assert.ok(node.isConnected(fakenode), "Real document connected");
+		getDocument(makeSimpleDocument());
+		assert.ok(node.isConnected(fakenode), "SimpleDocument connected");
+		getDocument(doc);
+	});
+}
+
 
 function onNodeRemovedTest(){
 	test('removeChild dispatches onNodeRemoved', function (assert) {
