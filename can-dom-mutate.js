@@ -6,17 +6,12 @@ var getMutationObserver = require('can-globals/mutation-observer/mutation-observ
 var namespace = require('can-namespace');
 var DOCUMENT = require("can-globals/document/document");
 var canReflect = require("can-reflect");
-// var canSymbol = require("can-symbol");
 
 var util = require('./-util');
 var eliminate = util.eliminate;
 var subscription = util.subscription;
 var isDocumentElement = util.isDocumentElement;
 var getAllNodes = util.getAllNodes;
-
-// var slice = Array.prototype.slice;
-
-// var onRemovedSymbol = canSymbol.for("can.onNodeRemoved");
 
 var domMutate, dispatchInsertion, dispatchRemoval, dispatchAttributeChange;
 var dataStore = new WeakMap();

@@ -66,17 +66,19 @@ function mutationObserverTests() {
 		node.setAttribute.call(child, attributeName, 'baz');
 	});
 
-	test('onInserted should be called when any node is inserted', function (assert) {
+	test('onConnected should be called when any node is inserted', function (assert) {
 		var done = assert.async();
 		var parent = testUtils.getFixture();
 		var doc = globals.getKeyValue('document');
 		var child = doc.createElement('div');
 
 		var undo = domMutate.onConnected(doc.documentElement, function (mutation) {
-			assert.equal(mutation.target, child, 'Node should be the inserted child');
+			if(mutation.target === child) {
+				assert.ok(true, 'Node should be the inserted child');
 
-			undo();
-			done();
+				undo();
+				done();
+			}
 		});
 
 		node.appendChild.call(parent, child);
@@ -130,10 +132,12 @@ function mutationObserverTests() {
 		var child = doc.createElement('div');
 
 		var undo = domMutate.onDisconnected(doc.documentElement, function (mutation) {
-			assert.equal(mutation.target, child, 'Node should be the removed child');
+			if(mutation.target === child) {
+				assert.ok(true, 'Node should be the removed child');
 
-			undo();
-			done();
+				undo();
+				done();
+			}
 		});
 
 		parent.appendChild(child);

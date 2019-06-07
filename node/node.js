@@ -25,13 +25,9 @@ function setIsConnected(doc) {
 	isConnected = 'isConnected' in node.constructor.prototype ?
 		getIsConnectedFromNode :
 		getIsConnectedFromDocument;
-	//!steal-remove-start
-	if(process.env.NODE_ENV !== "production") {
-		if(mutate) {
-			mutate.isConnected = isConnected;
-		}
+	if(mutate) {
+		mutate.isConnected = isConnected;
 	}
-	//!steal-remove-end
 }
 setIsConnected(globals.getKeyValue("document"));
 globals.onKeyValue("document", setIsConnected);
@@ -194,7 +190,6 @@ var mutate = {};
 */
 
 function setMutateStrategy(observer) {
-	// TODO: later make this workable ...
 	var strategy = observer ? normal : compat;
 
 	for (var key in strategy) {
@@ -206,10 +201,6 @@ var mutationObserverKey = 'MutationObserver';
 setMutateStrategy(globals.getKeyValue(mutationObserverKey));
 globals.onKeyValue(mutationObserverKey, setMutateStrategy);
 
-//!steal-remove-start
-if(process.env.NODE_ENV !== "production") {
-	mutate.isConnected = isConnected;
-}
-//!steal-remove-end
+mutate.isConnected = isConnected;
 
 module.exports = namespace.domMutateNode = domMutate.node = mutate;
