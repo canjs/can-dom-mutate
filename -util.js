@@ -29,15 +29,6 @@ function contains(parent, child){
 	}
 }
 
-function isInDocument (node) {
-	var root = getDocument();
-	if (root === node) {
-		return true;
-	}
-
-	return contains(root, node);
-}
-
 function isDocumentElement (node) {
 	return getDocument().documentElement === node;
 }
@@ -162,7 +153,6 @@ function subscription (fn) {
 
 module.exports = {
 	eliminate: eliminate,
-	isInDocument: isInDocument,
 	getDocument: getDocument,
 	isDocumentElement: isDocumentElement,
 	isFragment: isFragment,
@@ -170,5 +160,6 @@ module.exports = {
 	getAllNodes: getAllNodes,
 	getChildren: getChildren,
 	subscription: subscription,
-	addToSet: addToSet
+	addToSet: addToSet,
+	contains: contains
 };

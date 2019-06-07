@@ -11,22 +11,51 @@ function moduleWithMutationObserver (title, tests) {
 	unit.module(title + ' w/ MutationObserver', {}, tests);
 }
 
-function moduleWithoutMutationObserver (title, tests) {
+function moduleWithoutMutationObserver (title, doc, tests) {
 	var hooks = {
 		beforeEach: function () {
 			globals.setKeyValue(mutationObserverKey, null);
+			globals.setKeyValue('document', doc);
+
+			if(doc === document) {
+				this.fixture = document.getElementById("qunit-fixture");
+			} else {
+				this.fixture = doc.createElement("div");
+				this.fixture.setAttribute("id", "qunit-fixture");
+				doc.body.appendChild(this.fixture);
+			}
+
 		},
-		afterEach: function () {
+		afterEach: function (assert) {
 			globals.deleteKeyValue(mutationObserverKey);
+
+			if(doc !== document) {
+				doc.body.removeChild(this.fixture);
+			}
+
+			var done = assert.async();
+			setTimeout(function() {
+
+				globals.deleteKeyValue('document');
+
+				var fixture = document.getElementById("qunit-fixture");
+				while (fixture && fixture.hasChildNodes()) {
+					fixture.removeChild(fixture.lastChild);
+				}
+
+				done();
+			}, 10);
 		}
 	};
 
 	unit.module(title + ' w/o MutationObserver', hooks, tests);
 }
 
-function moduleMutationObserver (title, tests) {
-	moduleWithMutationObserver(title, tests);
-	moduleWithoutMutationObserver(title, tests);
+function moduleMutationObserver (title, doc, tests) {
+	if (doc === document) {
+		moduleWithMutationObserver(title, tests);
+	}
+	moduleWithoutMutationObserver(title, doc, tests);
 }
 
 function mock (obj, methodName, newMethod) {
@@ -38,7 +67,7 @@ function mock (obj, methodName, newMethod) {
 }
 
 function getFixture () {
-	return document.getElementById('qunit-fixture');
+	return globals.getKeyValue('document').getElementById('qunit-fixture');
 }
 
 module.exports = {

@@ -6,17 +6,12 @@ var getMutationObserver = require('can-globals/mutation-observer/mutation-observ
 var namespace = require('can-namespace');
 var DOCUMENT = require("can-globals/document/document");
 var canReflect = require("can-reflect");
-// var canSymbol = require("can-symbol");
 
 var util = require('./-util');
 var eliminate = util.eliminate;
 var subscription = util.subscription;
 var isDocumentElement = util.isDocumentElement;
 var getAllNodes = util.getAllNodes;
-
-// var slice = Array.prototype.slice;
-
-// var onRemovedSymbol = canSymbol.for("can.onNodeRemoved");
 
 var domMutate, dispatchInsertion, dispatchRemoval, dispatchAttributeChange;
 var dataStore = new WeakMap();
@@ -289,10 +284,10 @@ function handleAttributeMutations(mutations) {
 	}
 }
 
-// var treeMutationConfig = {
-// 	subtree: true,
-// 	childList: true
-// };
+var treeMutationConfig = {
+	subtree: true,
+	childList: true
+};
 
 var attributeMutationConfig = {
 	attributes: true,
@@ -314,7 +309,7 @@ function addNodeListener(listenerKey, observerKey, isAttributes) {
 		if (isAttributes) {
 			stopObserving = observeMutations(target, observerKey, attributeMutationConfig, handleAttributeMutations);
 		} else {
-			//stopObserving = observeMutations(DOCUMENT(), observerKey, treeMutationConfig, handleTreeMutations);
+			stopObserving = observeMutations(DOCUMENT(), observerKey, treeMutationConfig, handleTreeMutations);
 		}
 
 		addTargetListener(target, listenerKey, listener);
@@ -491,7 +486,7 @@ domMutate = {
 	onNodeConnected: addNodeConnectedListener,
 	onNodeInsertion: function(){
 		// TODO: remove in prod
-		console.warn("don't use this");
+		console.warn("can-dom-mutate: Use onNodeConnected instead of onNodeInsertion");
 		return addNodeConnectedListener.apply(this, arguments);
 	},
 	/**
@@ -508,7 +503,7 @@ domMutate = {
 	onNodeDisconnected: addNodeDisconnectedListener,
 	onNodeRemoval: function(){
 		// TODO: remove in prod
-		console.warn("don't use this");
+		console.warn("can-dom-mutate: Use onNodeDisconnected instead of onNodeRemoval");
 		return addNodeDisconnectedListener.apply(this, arguments);
 	},
 	/**
@@ -538,7 +533,7 @@ domMutate = {
 	onDisconnected: addDisconnectedListener,
 	onRemoval: function(){
 		// TODO: remove in prod
-		console.warn("don't use this");
+		console.warn("can-dom-mutate: Use onDisconnected instead of onRemoval");
 		return addDisconnectedListener.apply(this, arguments);
 	},
 	/**
@@ -555,7 +550,7 @@ domMutate = {
 	onConnected: addConnectedListener,
 	onInsertion: function(){
 		// TODO: remove in prod
-		console.warn("don't use this");
+		console.warn("can-dom-mutate: Use onConnected instead of onInsertion");
 		return addConnectedListener.apply(this, arguments);
 	},
 	/**
@@ -588,5 +583,11 @@ domMutate = {
 	onNodeInserted: addNodeInsertedListener,
 	onNodeRemoved: addNodeRemovedListener
 };
+
+//!steal-remove-start
+if(process.env.NODE_ENV !== "production") {
+	domMutate.dataStore = dataStore;
+}
+//!steal-remove-end
 
 module.exports = namespace.domMutate = domMutate;
