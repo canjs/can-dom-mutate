@@ -5,17 +5,19 @@ var node = require('../node');
 var testUtils = require('./test-utils');
 var globals = require('can-globals');
 var MUTATION_OBSERVER = require('can-globals/mutation-observer/mutation-observer');
+var makeSimpleDocument = require("can-vdom/make-document/make-document");
 
 var test = unit.test;
 var moduleMutationObserver = testUtils.moduleMutationObserver;
 
-moduleMutationObserver('can-dom-mutate', function () {
-	test('onNodeInsertion should be called when that node is inserted', function (assert) {
+function mutationObserverTests() {
+	test('onNodeConnected should be called when that node is inserted', function (assert) {
 		var done = assert.async();
+		var doc = globals.getKeyValue('document');
 		var parent = testUtils.getFixture();
-		var child = document.createElement('div');
+		var child = doc.createElement('div');
 
-		var undo = domMutate.onNodeInsertion(child, function (mutation) {
+		var undo = domMutate.onNodeConnected(child, function (mutation) {
 			var node = mutation.target;
 			assert.equal(node, child, 'Node should be the inserted child');
 
@@ -27,12 +29,13 @@ moduleMutationObserver('can-dom-mutate', function () {
 	});
 
 
-	test('onNodeRemoval should be called when that node is removed', function (assert) {
+	test('onNodeDisconnected should be called when that node is removed', function (assert) {
 		var done = assert.async();
+		var doc = globals.getKeyValue('document');
 		var parent = testUtils.getFixture();
-		var child = document.createElement('div');
+		var child = doc.createElement('div');
 
-		var undo = domMutate.onNodeRemoval(child, function (mutation) {
+		var undo = domMutate.onNodeDisconnected(child, function (mutation) {
 			var node = mutation.target;
 			assert.equal(node, child, 'Node should be the removed child');
 
@@ -46,7 +49,8 @@ moduleMutationObserver('can-dom-mutate', function () {
 
 	test('onNodeAttributeChange should be called when that node\'s attributes change', function (assert) {
 		var done = assert.async();
-		var child = document.createElement('div');
+		var doc = globals.getKeyValue('document');
+		var child = doc.createElement('div');
 		var attributeName = 'foo';
 		child.setAttribute(attributeName, 'bar');
 
@@ -62,16 +66,19 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.setAttribute.call(child, attributeName, 'baz');
 	});
 
-	test('onInserted should be called when any node is inserted', function (assert) {
+	test('onConnected should be called when any node is inserted', function (assert) {
 		var done = assert.async();
 		var parent = testUtils.getFixture();
-		var child = document.createElement('div');
+		var doc = globals.getKeyValue('document');
+		var child = doc.createElement('div');
 
-		var undo = domMutate.onInsertion(document.documentElement, function (mutation) {
-			assert.equal(mutation.target, child, 'Node should be the inserted child');
+		var undo = domMutate.onConnected(doc.documentElement, function (mutation) {
+			if(mutation.target === child) {
+				assert.ok(true, 'Node should be the inserted child');
 
-			undo();
-			done();
+				undo();
+				done();
+			}
 		});
 
 		node.appendChild.call(parent, child);
@@ -81,12 +88,13 @@ moduleMutationObserver('can-dom-mutate', function () {
 		assert.expect(3);
 		var done = assert.async();
 		var parent = testUtils.getFixture();
-		var fragment = document.createDocumentFragment();
-		var child1 = document.createElement('div');
+		var doc = globals.getKeyValue('document');
+		var fragment = doc.createDocumentFragment();
+		var child1 = doc.createElement('div');
 		child1.id = 'child1';
-		var child2 = document.createElement('div');
+		var child2 = doc.createElement('div');
 		child2.id = 'child2';
-		var grandchild = document.createElement('div');
+		var grandchild = doc.createElement('div');
 		grandchild.id = 'grandchild';
 		fragment.appendChild(child1);
 		fragment.appendChild(child2);
@@ -94,7 +102,7 @@ moduleMutationObserver('can-dom-mutate', function () {
 
 		var dispatchCount = 0;
 		var nodes = [child1, child2, grandchild];
-		var undo = domMutate.onInsertion(document.documentElement, function (mutation) {
+		var undo = domMutate.onConnected(doc.documentElement, function (mutation) {
 			var target = mutation.target;
 			if (nodes.indexOf(target) !== -1) {
 				dispatchCount++;
@@ -117,30 +125,34 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.appendChild.call(parent, fragment);
 	});
 
-	test('onRemoval should be called when any node is removed', function (assert) {
+	test('onDisconnected should be called when any node is removed', function (assert) {
 		var done = assert.async();
+		var doc = globals.getKeyValue('document');
 		var parent = testUtils.getFixture();
-		var child = document.createElement('div');
+		var child = doc.createElement('div');
 
-		var undo = domMutate.onRemoval(document.documentElement, function (mutation) {
-			assert.equal(mutation.target, child, 'Node should be the removed child');
+		var undo = domMutate.onDisconnected(doc.documentElement, function (mutation) {
+			if(mutation.target === child) {
+				assert.ok(true, 'Node should be the removed child');
 
-			undo();
-			done();
+				undo();
+				done();
+			}
 		});
 
 		parent.appendChild(child);
 		node.removeChild.call(parent, child);
 	});
 
-	test('onNodeInsertion should be called when that node is inserted into a different document', function(assert){
+	test('onNodeConnected should be called when that node is inserted into a different document', function(assert){
 		var done = assert.async();
+		var doc = globals.getKeyValue('document');
 		var parent = testUtils.getFixture();
 
-		var doc1 = document.implementation.createHTMLDocument('doc1');
+		var doc1 = doc.implementation.createHTMLDocument('doc1');
 		var child = doc1.createElement('div');
 
-		var undo = domMutate.onNodeInsertion(child, function (mutation) {
+		var undo = domMutate.onNodeConnected(child, function (mutation) {
 			var node = mutation.target;
 			assert.equal(node, child, 'Node should be the inserted child');
 
@@ -151,8 +163,9 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.appendChild.call(parent, child);
 	});
 
-	test('onNodeRemoval does not leak when given a document fragment', function(assert){
-		var doc1 = document.implementation.createHTMLDocument('doc1');
+	test('onNodeDisconnected does not leak when given a document fragment', function(assert){
+		var doc = globals.getKeyValue('document');
+		var doc1 = doc.implementation.createHTMLDocument('doc1');
 		var frag = doc1.createDocumentFragment();
 		frag.appendChild(doc1.createElement('div'));
 
@@ -161,20 +174,21 @@ moduleMutationObserver('can-dom-mutate', function () {
 		var previousListenerCount = getListenerCount();
 
 		DOCUMENT(doc1);
-		domMutate.onNodeRemoval(frag, function() {});
-		DOCUMENT(document);
+		domMutate.onNodeDisconnected(frag, function() {});
+		DOCUMENT(doc);
 
 		assert.equal(getListenerCount(), previousListenerCount, "No new listeners added for this fragment");
 	});
 
-	test('onNodeInsertion should be called when textNode is inserted within a parent', function (assert) {
+	test('onNodeConnected should be called when textNode is inserted within a parent', function (assert) {
 		var done = assert.async();
+		var doc = globals.getKeyValue('document');
 		var parent = testUtils.getFixture();
-		var child = document.createTextNode("Hello World");
-		var wrapper = document.createElement("div");
+		var child = doc.createTextNode("Hello World");
+		var wrapper = doc.createElement("div");
 		wrapper.appendChild(child);
 
-		var undo = domMutate.onNodeInsertion(child, function (mutation) {
+		var undo = domMutate.onNodeConnected(child, function (mutation) {
 			var node = mutation.target;
 			assert.equal(node, child, 'Node should be the inserted child');
 
@@ -185,18 +199,41 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.appendChild.call(parent, wrapper);
 	});
 
+
+	test('flushRecords works', function(assert){
+		var done = assert.async();
+		var doc = globals.getKeyValue('document');
+		var parent = testUtils.getFixture();
+		var wrapper = doc.createElement("div");
+		var called = false;
+		domMutate.onNodeConnected(wrapper, function () {
+			called = true;
+		});
+
+		node.appendChild.call(parent, wrapper);
+
+		domMutate.flushRecords();
+		assert.ok(called, "insertion run immediately");
+		setTimeout(done, 1);
+	});
+
+}
+
+moduleMutationObserver('can-dom-mutate with real document', DOCUMENT(), mutationObserverTests);
+testUtils.moduleWithMutationObserver('can-dom-mutate with real document', function() {
 	test('changing the MutationObserver tears down the mutation observer', function (assert) {
 		assert.expect(2);
+		var doc = globals.getKeyValue('document');
 		var done = assert.async();
 		var parent = testUtils.getFixture();
-		var wrapper = document.createElement("div");
+		var wrapper = doc.createElement("div");
 
-		var undoA = domMutate.onNodeInsertion(wrapper, function () {
+		var undoA = domMutate.onNodeConnected(wrapper, function () {
 			assert.ok(true, "this will still be called b/c it's on the document");
 			undoA();
 		});
 		MUTATION_OBSERVER(MUTATION_OBSERVER());
-		var undoB = domMutate.onNodeInsertion(wrapper, function (mutation) {
+		var undoB = domMutate.onNodeConnected(wrapper, function (mutation) {
 			var node = mutation.target;
 			assert.equal(node, wrapper, 'Node should be the inserted child');
 
@@ -207,3 +244,5 @@ moduleMutationObserver('can-dom-mutate', function () {
 		node.appendChild.call(parent, wrapper);
 	});
 });
+moduleMutationObserver('can-dom-mutate with SimpleDocument', makeSimpleDocument(), mutationObserverTests);
+

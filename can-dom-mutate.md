@@ -18,11 +18,11 @@ import {domMutate} from "can";
 domMutate
 // -> {
 //     onAttributeChange( documentElement, callback ),
-//     onInsertion( documentElement, callback ),
-//     onRemoval( documentElement, callback ),
+//     onConnected( documentElement, callback ),
+//     onDisconnected( documentElement, callback ),
 //     onNodeAttributeChange( node, callback ),
-//     onNodeInsertion( node, callback ),
-//     onNodeRemoval( node, callback )
+//     onNodeConnected( node, callback ),
+//     onNodeDisconnected( node, callback )
 //   }
 
 // listen to every attribute change within the document:
@@ -53,7 +53,7 @@ import {domMutate, domMutateNode} from "can";
 
 var element = document.createElement("div");
 
-var teardown = domMutate.onNodeInsertion(element, ()=>{
+var teardown = domMutate.onNodeConnected(element, ()=>{
 	console.log("element inserted!");
 });
 

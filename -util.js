@@ -29,15 +29,6 @@ function contains(parent, child){
 	}
 }
 
-function isInDocument (node) {
-	var root = getDocument();
-	if (root === node) {
-		return true;
-	}
-
-	return contains(root, node);
-}
-
 function isDocumentElement (node) {
 	return getDocument().documentElement === node;
 }
@@ -124,7 +115,7 @@ function getNodesWithTreeWalker(rootNode) {
 	// IE11 throws if createTreeWalker is called on a non-ElementNode
 	var walker = isElementNode(rootNode) && getDocument().createTreeWalker(
 		rootNode,
-		NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+		NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_COMMENT,
 		treeWalkerFilter,
 		false
 	);
@@ -162,7 +153,6 @@ function subscription (fn) {
 
 module.exports = {
 	eliminate: eliminate,
-	isInDocument: isInDocument,
 	getDocument: getDocument,
 	isDocumentElement: isDocumentElement,
 	isFragment: isFragment,
@@ -170,5 +160,6 @@ module.exports = {
 	getAllNodes: getAllNodes,
 	getChildren: getChildren,
 	subscription: subscription,
-	addToSet: addToSet
+	addToSet: addToSet,
+	contains: contains
 };
