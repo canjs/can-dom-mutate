@@ -42,9 +42,9 @@
     "lint": "fixpack && npm run jshint",
     "postpublish": "git push --tags && git push",
     "preversion": "npm test",
-    "release:major": "npm version major && npm publish",
-    "release:minor": "npm version minor && npm publish",
-    "release:patch": "npm version patch && npm publish",
+    "release:major": "echo 'Cannot publish a major release from a legacy branch' && exit 1",
+    "release:minor": "npm version minor && npm publish --tag 1.x-legacy",
+    "release:patch": "npm version patch && npm publish --tag 1.x-legacy",
     "release:pre": "npm version prerelease && npm publish --tag pre",
     "test": "npm run lint && npm run testee",
     "testee": "testee test.html --browsers firefox"
