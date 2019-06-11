@@ -68,10 +68,12 @@ moduleMutationObserver('can-dom-mutate', function () {
 		var child = document.createElement('div');
 
 		var undo = domMutate.onInsertion(document.documentElement, function (mutation) {
-			assert.equal(mutation.target, child, 'Node should be the inserted child');
+			if(mutation.target === child) {
+				assert.ok(true, 'Node should be the inserted child');
 
-			undo();
-			done();
+				undo();
+				done();
+			}
 		});
 
 		node.appendChild.call(parent, child);
@@ -123,10 +125,12 @@ moduleMutationObserver('can-dom-mutate', function () {
 		var child = document.createElement('div');
 
 		var undo = domMutate.onRemoval(document.documentElement, function (mutation) {
-			assert.equal(mutation.target, child, 'Node should be the removed child');
+			if(mutation.target === child) {
+				assert.ok(true, 'Node should be the removed child');
 
-			undo();
-			done();
+				undo();
+				done();
+			}
 		});
 
 		parent.appendChild(child);

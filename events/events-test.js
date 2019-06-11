@@ -47,18 +47,20 @@ testUtils.moduleWithMutationObserver('can-dom-mutate/dom-events', function () {
 
 		// listen for any element being inserted and run appropriate test
 		var onNodeInsertionCount = 0;
-		removeOnInsertionHandler  = domMutate.onInsertion(document.documentElement, function () {
-			switch(onNodeInsertionCount) {
-				case 0:
-					assert.equal(insertedEventCount, 1, 'inserted event should trigger for event.currentTarget');
-					node.appendChild.call(parent, child);
-					break;
-				case 1:
-					assert.equal(insertedEventCount, 1, 'inserted event should NOT trigger for child of event.currentTarget');
-					setTimeout(cleanup, 50);
-					break;
+		removeOnInsertionHandler  = domMutate.onInsertion(document.documentElement, function (mutation) {
+			if(mutation.target === parent) {
+				assert.equal(insertedEventCount, 1, 'inserted event should trigger for event.currentTarget');
+				assert.equal(onNodeInsertionCount, 0, 'parent insertion called at right time');
+				onNodeInsertionCount++;
+				node.appendChild.call(parent, child);
+			} else if(mutation.target === child) {
+				assert.equal(insertedEventCount, 1, 'inserted event should NOT trigger for child of event.currentTarget');
+				assert.equal(onNodeInsertionCount, 1, 'child insertion called at right time');
+				onNodeInsertionCount++;
+				setTimeout(cleanup, 50);
+			} else {
+				console.log("dom-events test: mutation fired for non-test element", mutation);
 			}
-			onNodeInsertionCount++;
 		});
 
 		node.appendChild.call(fixture, parent);
