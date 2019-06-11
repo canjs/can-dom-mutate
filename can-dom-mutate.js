@@ -79,7 +79,7 @@ function addTargetListener (target, key, listener) {
 	var doc = DOCUMENT();
 	var targetListenersMap = getRelatedData(doc, key);
 	if (!targetListenersMap) {
-		targetListenersMap = new Map();
+		targetListenersMap = new WeakMap();
 		setRelatedData(doc, key, targetListenersMap);
 	}
 	var targetListeners = targetListenersMap.get(target);
