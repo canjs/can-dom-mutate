@@ -217,6 +217,26 @@ function mutationObserverTests() {
 		setTimeout(done, 1);
 	});
 
+	test('onDisconnected after onConnected', function(assert){
+		var done = assert.async();
+		var doc = globals.getKeyValue('document');
+		var parent = testUtils.getFixture();
+		var wrapper = doc.createElement("div");
+		var called = false;
+
+		domMutate.onNodeDisconnected(wrapper, function(){
+			assert.ok(called, "connected called before disconnected");
+			done();
+		});
+		domMutate.onNodeConnected(wrapper, function () {
+			called = true;
+			assert.ok(true, "connected called");
+		});
+
+		node.appendChild.call(parent, wrapper);
+		node.removeChild.call(parent, wrapper);
+	});
+
 }
 
 moduleMutationObserver('can-dom-mutate with real document', DOCUMENT(), mutationObserverTests);
@@ -245,4 +265,3 @@ testUtils.moduleWithMutationObserver('can-dom-mutate with real document', functi
 	});
 });
 moduleMutationObserver('can-dom-mutate with SimpleDocument', makeSimpleDocument(), mutationObserverTests);
-
