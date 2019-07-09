@@ -206,9 +206,11 @@ function mutationObserverTests() {
 		var parent = testUtils.getFixture();
 		var wrapper = doc.createElement("div");
 		var called = false;
-		domMutate.onNodeConnected(wrapper, function () {
+		var teardown = domMutate.onNodeConnected(wrapper, function () {
+			teardown();
 			called = true;
 		});
+
 
 		node.appendChild.call(parent, wrapper);
 
@@ -237,6 +239,34 @@ function mutationObserverTests() {
 
 		node.appendChild.call(parent, wrapper);
 		node.removeChild.call(parent, wrapper);
+	});
+
+	test('no double connected', function(assert){
+		assert.expect(1);
+		var done = assert.async();
+
+		var doc = globals.getKeyValue('document');
+
+
+		var outer = doc.createElement("div");
+		var inner = doc.createElement("div");
+
+		var connectedTeardown = domMutate.onNodeConnected(inner, function () {
+			called = true;
+			assert.ok(true, "connected called");
+
+			setTimeout(function(){
+				connectedTeardown();
+				done();
+			},1);
+
+		});
+
+		var parent = testUtils.getFixture();
+
+
+		node.appendChild.call(parent, outer);
+		node.appendChild.call(outer, inner);
 	});
 
 }

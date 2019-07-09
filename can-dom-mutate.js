@@ -36,9 +36,13 @@ function deleteRelatedData(node, key) {
 	return delete data[key];
 }
 
+function toMutationEvent(node) {
+	return {target: node};
+}
+
 function toMutationEvents (nodes) {
 	var events = [];
-	for (var i = 0; i < nodes.length; i++) {
+	for (var i = 0, length = nodes.length; i < nodes.length; i++) {
 		events.push({target: nodes[i]});
 	}
 	return events;
@@ -244,20 +248,21 @@ function handleTreeMutations(mutations) {
 	if (typeof Set === "undefined") { return; }
 
 	var mutationCount = mutations.length;
-	// var added = new Set(), removed = new Set();
+	var added = new Set(), removed = new Set();
 	for (var m = 0; m < mutationCount; m++) {
 		var mutation = mutations[m];
 
 		var removedCount = mutation.removedNodes.length;
 		for (var r = 0; r < removedCount; r++) {
-			//util.addToSet( getAllNodes(mutation.removedNodes[r]), removed);
-			dispatchRemoval( toMutationEvents(  getAllNodes(mutation.removedNodes[r]) ), null, true, flushCallbacks );
+			// get what already isn't in `removed`
+			var newRemoved = util.addToSet( getAllNodes(mutation.removedNodes[r]), removed);
+			dispatchRemoval( newRemoved.map(toMutationEvent), null, true, flushCallbacks );
 		}
 
 		var addedCount = mutation.addedNodes.length;
 		for (var a = 0; a < addedCount; a++) {
-			//util.addToSet( getAllNodes(mutation.addedNodes[a]), added);
-			dispatchInsertion( toMutationEvents( getAllNodes(mutation.addedNodes[a]) ), null, true, flushCallbacks );
+			var newAdded = util.addToSet( getAllNodes(mutation.addedNodes[a]), added);
+			dispatchInsertion( newAdded.map(toMutationEvent), null, true, flushCallbacks );
 		}
 
 

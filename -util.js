@@ -9,9 +9,15 @@ function eliminate(array, item) {
 }
 
 function addToSet(items, set) {
+	var newItems = [];
 	for(var i =0, length = items.length; i < length; i++) {
-		set.add(items[i]);
+		var item = items[i];
+		if(!set.has(item)) {
+			set.add(item);
+			newItems.push(item);
+		}
 	}
+	return newItems;
 }
 
 function contains(parent, child){
