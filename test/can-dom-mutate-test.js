@@ -213,7 +213,6 @@ function mutationObserverTests() {
 
 
 		node.appendChild.call(parent, wrapper);
-
 		domMutate.flushRecords();
 		assert.ok(called, "insertion run immediately");
 		setTimeout(done, 1);
@@ -266,6 +265,42 @@ function mutationObserverTests() {
 
 		node.appendChild.call(parent, outer);
 		node.appendChild.call(outer, inner);
+	});
+
+	test("flushRecords while processing records issues changes in order", function(assert){
+		var done = assert.async();
+		var doc = globals.getKeyValue('document');
+
+		var parent = testUtils.getFixture();
+
+		var firstDiv = doc.createElement("div"),
+			secondDiv = doc.createElement("div"),
+			thirdDiv = doc.createElement("div");
+
+		var order = [];
+
+		var firstConnectedTeardown = domMutate.onNodeConnected(firstDiv, function () {
+			order.push("first");
+			node.appendChild.call(parent, thirdDiv);
+			domMutate.flushRecords();
+			firstConnectedTeardown();
+		});
+
+		var secondConnectedTeardown = domMutate.onNodeConnected(secondDiv, function () {
+			order.push("second");
+			secondConnectedTeardown();
+		});
+
+		var thirdConnectedTeardown = domMutate.onNodeConnected(thirdDiv, function () {
+			order.push("third");
+			assert.deepEqual(order, ["first","second","third"]);
+			order.push("third");
+			thirdConnectedTeardown();
+			done();
+		});
+
+		node.appendChild.call(parent, firstDiv);
+		node.appendChild.call(parent, secondDiv);
 	});
 
 }
