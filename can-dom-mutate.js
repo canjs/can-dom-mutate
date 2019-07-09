@@ -42,7 +42,7 @@ function toMutationEvent(node) {
 
 function toMutationEvents (nodes) {
 	var events = [];
-	for (var i = 0, length = nodes.length; i < nodes.length; i++) {
+	for (var i = 0, length = nodes.length; i < length; i++) {
 		events.push({target: nodes[i]});
 	}
 	return events;

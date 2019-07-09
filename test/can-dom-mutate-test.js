@@ -252,7 +252,6 @@ function mutationObserverTests() {
 		var inner = doc.createElement("div");
 
 		var connectedTeardown = domMutate.onNodeConnected(inner, function () {
-			called = true;
 			assert.ok(true, "connected called");
 
 			setTimeout(function(){
