@@ -224,13 +224,15 @@ function mutationObserverTests() {
 		var wrapper = doc.createElement("div");
 		var called = false;
 
-		domMutate.onNodeDisconnected(wrapper, function(){
+		var disconnectTeardown = domMutate.onNodeDisconnected(wrapper, function(){
 			assert.ok(called, "connected called before disconnected");
 			done();
+			disconnectTeardown();
 		});
-		domMutate.onNodeConnected(wrapper, function () {
+		var connectedTeardown = domMutate.onNodeConnected(wrapper, function () {
 			called = true;
 			assert.ok(true, "connected called");
+			connectedTeardown();
 		});
 
 		node.appendChild.call(parent, wrapper);
