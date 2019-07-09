@@ -1,6 +1,5 @@
 'use strict';
 
-var globals = require('can-globals');
 var getRoot = require('can-globals/global/global');
 var getMutationObserver = require('can-globals/mutation-observer/mutation-observer');
 var namespace = require('can-namespace');
@@ -77,7 +76,7 @@ function addTargetListener (target, key, listener) {
 	var doc = DOCUMENT();
 	var targetListenersMap = getRelatedData(doc, key);
 	if (!targetListenersMap) {
-		targetListenersMap = new Map();
+		targetListenersMap = new WeakMap();
 		setRelatedData(doc, key, targetListenersMap);
 	}
 	var targetListeners = targetListenersMap.get(target);
@@ -218,7 +217,6 @@ function observeMutations(target, observerKey, config, handler) {
 	};
 
 	if (observerData.observingCount === 0) {
-		globals.onKeyValue('MutationObserver', setupObserver);
 		setupObserver();
 	}
 
@@ -232,7 +230,6 @@ function observeMutations(target, observerKey, config, handler) {
 					observerData.observer.disconnect();
 				}
 				deleteRelatedData(target, observerKey);
-				globals.offKeyValue('MutationObserver', setupObserver);
 			}
 		}
 	};
