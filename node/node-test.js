@@ -31,7 +31,7 @@ test("isConnected() uses isConnected where available", function(assert) {
 				assert.notStrictEqual(doc.constructor, getDocument().constructor, "with SimpleDocument")
 			} else {
 				// IE 11 doesn't support isConnected, so both isConnected() calls will go through here
-				assert.ok(true, "Native Node.prototype does not support isConnected");					
+				assert.ok(true, "Native Node.prototype does not support isConnected");
 			}
 			return null;
 		}
@@ -416,15 +416,17 @@ function notInDocumentTests() {
 		var doc = getDocument();
 		var doc1 = doc.implementation.createHTMLDocument('doc1');
 		getDocument(doc1);
+
 		var undo = domMutate.onNodeDisconnected(doc1.documentElement, function() {
 			assert.ok(true, 'this was called');
+			getDocument(doc);
 			undo();
 			done();
 		});
 
 
 		node.removeChild.call(doc1, doc1.documentElement);
-		getDocument(doc);
+
 	});
 }
 moduleWithoutMutationObserver('can-dom-mutate/node (not in real document)', getDocument(), notInDocumentTests);
