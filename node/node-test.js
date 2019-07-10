@@ -411,20 +411,22 @@ function notInDocumentTests() {
 		undoInsertion();
 	});
 
-	QUnit.only('removeChild on the documentElement', function(assert) {
+	QUnit.test('removeChild on the documentElement', function(assert) {
 		var done = assert.async();
 		var doc = getDocument();
 		var doc1 = doc.implementation.createHTMLDocument('doc1');
 		getDocument(doc1);
+
 		var undo = domMutate.onNodeDisconnected(doc1.documentElement, function() {
 			assert.ok(true, 'this was called');
+			getDocument(doc);
 			undo();
 			done();
 		});
 
 
 		node.removeChild.call(doc1, doc1.documentElement);
-		getDocument(doc);
+
 	});
 }
 moduleWithoutMutationObserver('can-dom-mutate/node (not in real document)', getDocument(), notInDocumentTests);

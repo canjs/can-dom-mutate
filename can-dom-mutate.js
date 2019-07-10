@@ -4,7 +4,6 @@ var getRoot = require('can-globals/global/global');
 var getMutationObserver = require('can-globals/mutation-observer/mutation-observer');
 var namespace = require('can-namespace');
 var DOCUMENT = require("can-globals/document/document");
-var canReflect = require("can-reflect");
 
 var util = require('./-util');
 var eliminate = util.eliminate;
@@ -14,6 +13,8 @@ var getAllNodes = util.getAllNodes;
 
 var domMutate, dispatchInsertion, dispatchRemoval, dispatchAttributeChange;
 var dataStore = new WeakMap();
+
+var queue;
 
 function getRelatedData(node, key) {
 	var data = dataStore.get(node);
@@ -39,7 +40,7 @@ function deleteRelatedData(node, key) {
 function toMutationEvent(node) {
 	return {target: node};
 }
-
+/*
 function toMutationEvents (nodes) {
 	var events = [];
 	for (var i = 0, length = nodes.length; i < length; i++) {
@@ -47,7 +48,7 @@ function toMutationEvents (nodes) {
 	}
 	return events;
 }
-
+*/
 function batch(processBatchItems) {
 
 	return function batchAdd(items, callback, dispatchConnected, flush) {
@@ -59,6 +60,9 @@ function batch(processBatchItems) {
 }
 
 function getDocumentListeners (target, key) {
+	// TODO: it's odd these functions read DOCUMENT() instead of
+	// target.ownerDocument.  To change to ownerDocument, we might need a "is document"
+	// check.
 	var doc = DOCUMENT();
 	var data = getRelatedData(doc, key);
 	if (data) {
@@ -115,7 +119,7 @@ function nextTick(handler) {
 	promise.then(handler);
 }
 
-var recordsAndCallbacks = null;
+//var recordsAndCallbacks = null;
 
 function flushCallbacks(callbacks, arg){
 	var callbacksCount = callbacks.length;
@@ -298,98 +302,6 @@ function handleAttributeMutations(mutations) {
 }
 */
 
-// ==========================================
-
-var FLUSHING_MUTATIONS = [];
-var IS_FLUSHING = false;
-
-var IS_FLUSH_PENDING = false;
-var ENQUEUED_MUTATIONS = [];
-
-var queue = {
-	// This is used to dispatch mutations immediately.
-	// This is usually called by the result of a mutation observer.
-	enqueueAndFlushMutations: function(mutations) {
-		if(IS_FLUSH_PENDING) {
-			FLUSHING_MUTATIONS.push.apply(FLUSHING_MUTATIONS, ENQUEUED_MUTATIONS);
-			IS_FLUSH_PENDING = false;
-			ENQUEUED_MUTATIONS = [];
-		}
-
-		FLUSHING_MUTATIONS.push.apply(FLUSHING_MUTATIONS, mutations);
-		if(IS_FLUSHING) {
-			return;
-		}
-
-		IS_FLUSHING = true;
-
-		var index = 0;
-
-		var processedState = {
-			added: new Set(),
-			removed: new Set()
-		}
-
-		while(index < FLUSHING_MUTATIONS.length) {
-			var mutation = FLUSHING_MUTATIONS[index];
-			// process mutation
-			if(mutation.type === "childList") {
-				dispatchTreeMutation(mutation, processedState);
-			} else if(mutation.type === "attributes") {
-				handleAttributeMutation(mutation);
-			}
-			index++;
-
-		}
-		FLUSHING_MUTATIONS = [];
-		IS_FLUSHING = false;
-	},
-	// called to dipatch later unless we are already dispatching.
-	enqueueMutationsAndFlushAsync: function(mutations){
-		ENQUEUED_MUTATIONS.push.apply(ENQUEUED_MUTATIONS, mutations);
-
-		// if there are currently dispatching mutations, this should happen sometime after
-		if(!IS_FLUSH_PENDING) {
-			IS_FLUSH_PENDING = true;
-			nextTick(function(){
-				if(IS_FLUSH_PENDING) {
-					IS_FLUSH_PENDING = false;
-					var pending = ENQUEUED_MUTATIONS;
-					ENQUEUED_MUTATIONS = [];
-					queue.enqueueAndFlushMutations(pending);
-				} else {
-					// Someone called enqueueAndFlushMutations before this finished.
-				}
-			})
-		}
-	}
-}
-
-function dispatchTreeMutation(mutation, processedState) {
-	var removedCount = mutation.removedNodes.length;
-	for (var r = 0; r < removedCount; r++) {
-		// get what already isn't in `removed`
-		var newRemoved = util.addToSet( getAllNodes(mutation.removedNodes[r]), processedState.removed);
-		dispatchRemoval( newRemoved.map(toMutationEvent), null, !mutation.dispatchOnlyDisconnected, flushCallbacks );
-	}
-
-	var addedCount = mutation.addedNodes.length;
-	for (var a = 0; a < addedCount; a++) {
-		var newAdded = util.addToSet( getAllNodes(mutation.addedNodes[a]), processedState.added);
-		dispatchInsertion( newAdded.map(toMutationEvent), null, !mutation.dispatchOnlyDisconnected, flushCallbacks );
-	}
-}
-
-
-function handleAttributeMutation(mutation) {
-	var node = mutation.target;
-	var attributeName = mutation.attributeName;
-	var oldValue = mutation.oldValue;
-
-	dispatchAttributeChange([mutation], null, true, flushCallbacks);
-}
-
-// ==========================================
 
 
 
@@ -514,6 +426,98 @@ var addAttributeChangeListener = addGlobalListener(
 	addNodeAttributeChangeListener
 );
 
+// ==========================================
+function dispatchTreeMutation(mutation, processedState) {
+	var removedCount = mutation.removedNodes.length;
+	for (var r = 0; r < removedCount; r++) {
+		// get what already isn't in `removed`
+		var newRemoved = util.addToSet( getAllNodes(mutation.removedNodes[r]), processedState.removed);
+		dispatchRemoval( newRemoved.map(toMutationEvent), null, !mutation.dispatchOnlyDisconnected, flushCallbacks );
+	}
+
+	var addedCount = mutation.addedNodes.length;
+	for (var a = 0; a < addedCount; a++) {
+		var newAdded = util.addToSet( getAllNodes(mutation.addedNodes[a]), processedState.added);
+		dispatchInsertion( newAdded.map(toMutationEvent), null, !mutation.dispatchOnlyDisconnected, flushCallbacks );
+	}
+}
+
+
+function handleAttributeMutation(mutation) {
+
+	dispatchAttributeChange([mutation], null, true, flushCallbacks);
+}
+
+
+
+var FLUSHING_MUTATIONS = [];
+var IS_FLUSHING = false;
+
+var IS_FLUSH_PENDING = false;
+var ENQUEUED_MUTATIONS = [];
+
+queue = {
+	// This is used to dispatch mutations immediately.
+	// This is usually called by the result of a mutation observer.
+	enqueueAndFlushMutations: function(mutations) {
+		if(IS_FLUSH_PENDING) {
+			FLUSHING_MUTATIONS.push.apply(FLUSHING_MUTATIONS, ENQUEUED_MUTATIONS);
+			IS_FLUSH_PENDING = false;
+			ENQUEUED_MUTATIONS = [];
+		}
+
+		FLUSHING_MUTATIONS.push.apply(FLUSHING_MUTATIONS, mutations);
+		if(IS_FLUSHING) {
+			return;
+		}
+
+		IS_FLUSHING = true;
+
+		var index = 0;
+
+		var processedState = {
+			added: new Set(),
+			removed: new Set()
+		};
+
+		while(index < FLUSHING_MUTATIONS.length) {
+			var mutation = FLUSHING_MUTATIONS[index];
+			// process mutation
+			if(mutation.type === "childList") {
+				dispatchTreeMutation(mutation, processedState);
+			} else if(mutation.type === "attributes") {
+				handleAttributeMutation(mutation);
+			}
+			index++;
+
+		}
+		FLUSHING_MUTATIONS = [];
+		IS_FLUSHING = false;
+	},
+	// called to dipatch later unless we are already dispatching.
+	enqueueMutationsAndFlushAsync: function(mutations){
+		ENQUEUED_MUTATIONS.push.apply(ENQUEUED_MUTATIONS, mutations);
+
+		// if there are currently dispatching mutations, this should happen sometime after
+		if(!IS_FLUSH_PENDING) {
+			IS_FLUSH_PENDING = true;
+			nextTick(function(){
+				if(IS_FLUSH_PENDING) {
+					IS_FLUSH_PENDING = false;
+					var pending = ENQUEUED_MUTATIONS;
+					ENQUEUED_MUTATIONS = [];
+					queue.enqueueAndFlushMutations(pending);
+				} else {
+					// Someone called enqueueAndFlushMutations before this finished.
+				}
+			});
+		}
+	}
+};
+
+
+// ==========================================
+
 
 domMutate = {
 	/**
@@ -535,7 +539,7 @@ domMutate = {
 				addedNodes: [node],
 				removedNodes: []
 			}]
-		)
+		);
 		/*
 		var nodes = new Set();
 		util.addToSet( getAllNodes(node), nodes);
@@ -563,7 +567,7 @@ domMutate = {
 				addedNodes: [],
 				removedNodes: [node]
 			}]
-		)
+		);
 		/*
 		var nodes = new Set();
 		util.addToSet( getAllNodes(node), nodes);
@@ -589,9 +593,8 @@ domMutate = {
 	* @param {Node} target The node on which to dispatch an attribute change mutation.
 	* @param {String} attributeName The attribute name whose value has changed.
 	* @param {String} oldValue The attribute value before the change.
-	* @param {function} callback The optional callback called after the mutation is dispatched.
 	*/
-	dispatchNodeAttributeChange: function (target, attributeName, oldValue, callback) {
+	dispatchNodeAttributeChange: function (target, attributeName, oldValue) {
 		queue.enqueueMutationsAndFlushAsync(
 			[{
 				type: "attributes",
@@ -599,7 +602,7 @@ domMutate = {
 				attributeName: attributeName,
 				oldValue: oldValue
 			}]
-		)
+		);
 	},
 
 	/**
