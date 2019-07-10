@@ -328,6 +328,26 @@ function withoutMutationObserverTests () {
 
 		node.removeAttribute.call(element, 'data-foo');
 	});
+
+	QUnit.test("connected should be called if element is inserted to a disconnected element and then the parent is inserted )#64", function(assert){
+		var done = assert.async();
+		var fixture = testUtils.getFixture();
+		var parent = document.createElement('div');
+		var child = document.createElement('div');
+
+
+
+
+		var undo = domMutate.onNodeConnected(child, function() {
+			assert.ok(true, 'this was called');
+			undo();
+			done();
+		});
+
+
+		node.appendChild.call(parent, child);
+		node.appendChild.call(fixture, parent);
+	});
 };
 moduleWithoutMutationObserver('can-dom-mutate/node with real document', getDocument(), withoutMutationObserverTests);
 moduleWithoutMutationObserver('can-dom-mutate/node with SimpleDocument', makeSimpleDocument(), withoutMutationObserverTests);

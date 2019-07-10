@@ -13,6 +13,7 @@ var getAllNodes = util.getAllNodes;
 
 var domMutate, dispatchInsertion, dispatchRemoval, dispatchAttributeChange;
 var dataStore = new WeakMap();
+var isConnected = require("./-is-connected");
 
 var queue;
 
@@ -432,13 +433,13 @@ function dispatchTreeMutation(mutation, processedState) {
 	for (var r = 0; r < removedCount; r++) {
 		// get what already isn't in `removed`
 		var newRemoved = util.addToSet( getAllNodes(mutation.removedNodes[r]), processedState.removed);
-		dispatchRemoval( newRemoved.map(toMutationEvent), null, !mutation.dispatchOnlyDisconnected, flushCallbacks );
+		dispatchRemoval( newRemoved.map(toMutationEvent), null, isConnected.isConnected(mutation.target), flushCallbacks );
 	}
 
 	var addedCount = mutation.addedNodes.length;
 	for (var a = 0; a < addedCount; a++) {
 		var newAdded = util.addToSet( getAllNodes(mutation.addedNodes[a]), processedState.added);
-		dispatchInsertion( newAdded.map(toMutationEvent), null, !mutation.dispatchOnlyDisconnected, flushCallbacks );
+		dispatchInsertion( newAdded.map(toMutationEvent), null, isConnected.isConnected(mutation.addedNodes[a]), flushCallbacks );
 	}
 }
 
@@ -529,13 +530,12 @@ domMutate = {
 	* @signature `dispatchNodeInsertion( node [, callback ] )`
 	* @parent can-dom-mutate.static
 	* @param {Node} node The node on which to dispatch an insertion mutation.
-	* @param {function} callback The optional callback called after the mutation is dispatched.
 	*/
-	dispatchNodeInsertion: function (node, callback, dispatchConnected) {
+	dispatchNodeInsertion: function (node, target) {
 		queue.enqueueMutationsAndFlushAsync(
 			[{
 				type: "childList",
-				dispatchOnlyDisconnected: !dispatchConnected,
+				target: target,
 				addedNodes: [node],
 				removedNodes: []
 			}]
@@ -559,11 +559,11 @@ domMutate = {
 	* @param {Node} node The node on which to dispatch a removal mutation.
 	* @param {function} callback The optional callback called after the mutation is dispatched.
 	*/
-	dispatchNodeRemoval: function (node, callback, dispatchConnected) {
+	dispatchNodeRemoval: function (node, target) {
 		queue.enqueueMutationsAndFlushAsync(
 			[{
 				type: "childList",
-				dispatchOnlyDisconnected: !dispatchConnected,
+				target: target,
 				addedNodes: [],
 				removedNodes: [node]
 			}]

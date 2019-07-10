@@ -236,7 +236,7 @@ function mutationObserverTests() {
 			connectedTeardown();
 		});
 
-		node.appendChild.call(parent, wrapper);
+		node.appendChild.call(parent, wrapper); // problem here is that it's removed
 		node.removeChild.call(parent, wrapper);
 	});
 
