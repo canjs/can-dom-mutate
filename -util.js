@@ -7,18 +7,14 @@ function eliminate(array, item) {
 		array.splice(index, 1);
 	}
 }
-
-function addToSet(items, set) {
-	var newItems = [];
-	for(var i =0, length = items.length; i < length; i++) {
-		var item = items[i];
-		if(!set.has(item)) {
-			set.add(item);
-			newItems.push(item);
-		}
+function wasNotInSet(item, set) {
+	var inSet = set.has(item);
+	if(inSet === false) {
+		set.add(item);
 	}
-	return newItems;
+	return !inSet;
 }
+
 
 function contains(parent, child){
 	if(parent.contains) {
@@ -166,6 +162,6 @@ module.exports = {
 	getAllNodes: getAllNodes,
 	getChildren: getChildren,
 	subscription: subscription,
-	addToSet: addToSet,
+	wasNotInSet: wasNotInSet,
 	contains: contains
 };

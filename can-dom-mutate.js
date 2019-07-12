@@ -11,7 +11,16 @@ var subscription = util.subscription;
 var isDocumentElement = util.isDocumentElement;
 var getAllNodes = util.getAllNodes;
 
-var domMutate, dispatchInsertion, dispatchRemoval, dispatchAttributeChange;
+var domMutate,
+	dispatchNodeInserted,
+	dispatchNodeConnected,
+	dispatchGlobalConnected,
+	dispatchNodeRemoved,
+	dispatchNodeDisconnected,
+	dispatchGlobalDisconnected,
+	dispatchAttributeChange,
+	dispatchGlobalAttributeChange;
+
 var dataStore = new WeakMap();
 var isConnected = require("./-is-connected");
 
@@ -38,8 +47,8 @@ function deleteRelatedData(node, key) {
 	return delete data[key];
 }
 
-function toMutationEvent(node) {
-	return {target: node};
+function toMutationEvent(node, mutation) {
+	return {target: node, sourceMutation: mutation};
 }
 /*
 function toMutationEvents (nodes) {
@@ -154,45 +163,19 @@ function flushAsync(callbacks, arg) {
 	}
 }
 */
-function dispatch(targetKey, connectedKey, documentDataKey) {
-	return function dispatchEvents(events, dispatchConnected, flush) {
-		// we could check the first element and see if it's in the document
-		// if it is conditionally fire "connected" events
-		for (var e = 0; e < events.length; e++) {
-			var event = events[e];
-			var target = event.target;
-			// we need to check
-			//
-			var targetListeners = getTargetListeners(target, targetKey);
+function dispatch(getListeners, targetKey) {
 
-			if (targetListeners) {
-				flush(targetListeners, event);
-			}
+	return function dispatchEvents(event) {
 
-			if(!dispatchConnected) {
-				continue;
-			}
+		var targetListeners = getListeners(event.target, targetKey);
 
-			var connectedListeners;
-			if(connectedKey){
-				connectedListeners  = getTargetListeners(target, connectedKey);
-			}
-
-			if (connectedListeners) {
-				flush(connectedListeners, event);
-			}
-
-			if (!documentDataKey) {
-				continue;
-			}
-
-			var documentListeners = getDocumentListeners(target, documentDataKey);
-			if (documentListeners) {
-				flush(documentListeners, event);
-			}
+		if (targetListeners) {
+			flushCallbacks(targetListeners, event);
 		}
+
 	};
 }
+
 var count = 0;
 
 function observeMutations(target, observerKey, config, handler) {
@@ -402,9 +385,16 @@ var documentAttributeChangeDataKey = domMutationPrefix + 'DocumentAttributeChang
 var treeDataKey = domMutationPrefix + 'TreeData';
 var attributeDataKey = domMutationPrefix + 'AttributeData';
 
-dispatchInsertion = batch(dispatch(insertedDataKey, connectedDataKey, documentConnectedDataKey));
-dispatchRemoval = batch(dispatch(removedDataKey, disconnectedDataKey, documentDisconnectedDataKey));
-dispatchAttributeChange = batch(dispatch(attributeChangeDataKey, null , documentAttributeChangeDataKey));
+dispatchNodeInserted = dispatch(getTargetListeners, insertedDataKey);
+dispatchNodeConnected = dispatch(getTargetListeners, connectedDataKey);
+dispatchGlobalConnected = dispatch(getDocumentListeners, documentConnectedDataKey);
+
+dispatchNodeRemoved = dispatch(getTargetListeners, removedDataKey);
+dispatchNodeDisconnected = dispatch(getTargetListeners, disconnectedDataKey);
+dispatchGlobalDisconnected = dispatch(getDocumentListeners, documentDisconnectedDataKey);
+
+dispatchAttributeChange = dispatch(getTargetListeners, attributeChangeDataKey);
+dispatchGlobalAttributeChange = dispatch(getDocumentListeners, documentAttributeChangeDataKey);
 
 // node listeners
 var addNodeConnectedListener = addNodeListener(connectedDataKey, treeDataKey);
@@ -429,25 +419,54 @@ var addAttributeChangeListener = addGlobalListener(
 
 // ==========================================
 function dispatchTreeMutation(mutation, processedState) {
+	// was the mutation connected
+	var wasConnected = mutation.isConnected === true || mutation.isConnected === undefined;
+
+	// there are
+	// - the global connected
+	// - individual connected
+	// - individual inserted
+
 	var removedCount = mutation.removedNodes.length;
 	for (var r = 0; r < removedCount; r++) {
 		// get what already isn't in `removed`
-		var newRemoved = util.addToSet( getAllNodes(mutation.removedNodes[r]), processedState.removed);
-		dispatchRemoval( newRemoved.map(toMutationEvent), null, isConnected.isConnected(mutation.target), flushCallbacks );
+
+		// see if "removed"
+		// if wasConnected .. dispatch disconnected
+		var removedNodes = getAllNodes(mutation.removedNodes[r]);
+		removedNodes.forEach(function(node){
+			var event = toMutationEvent(node, mutation);
+
+			if( util.wasNotInSet(node, processedState.removed) ) {
+				dispatchNodeRemoved( event );
+			}
+			if(wasConnected && util.wasNotInSet(node, processedState.disconnected) ) {
+				dispatchNodeDisconnected( event );
+				dispatchGlobalDisconnected( event );
+			}
+		});
 	}
 
 	var addedCount = mutation.addedNodes.length;
 	for (var a = 0; a < addedCount; a++) {
-		var newAdded = util.addToSet( getAllNodes(mutation.addedNodes[a]), processedState.added);
-		dispatchInsertion( newAdded.map(toMutationEvent), null, isConnected.isConnected(mutation.addedNodes[a]), flushCallbacks );
+		var insertedNodes = getAllNodes(mutation.addedNodes[a]);
+		insertedNodes.forEach(function(node){
+			var event = toMutationEvent(node, mutation);
+
+			if(util.wasNotInSet(node, processedState.inserted)) {
+				dispatchNodeInserted( event );
+			}
+			if(wasConnected && util.wasNotInSet(node, processedState.connected) ) {
+				dispatchNodeConnected( event );
+				dispatchGlobalConnected( event );
+			}
+		});
 	}
+	// run mutation
 }
 
 
-function handleAttributeMutation(mutation) {
 
-	dispatchAttributeChange([mutation], null, true, flushCallbacks);
-}
 
 
 
@@ -477,9 +496,11 @@ queue = {
 		var index = 0;
 
 		var processedState = {
-			added: new Set(),
+			connected: new Set(),
+			disconnected: new Set(),
+			inserted: new Set(),
 			removed: new Set()
-		};
+		}
 
 		while(index < FLUSHING_MUTATIONS.length) {
 			var mutation = FLUSHING_MUTATIONS[index];
@@ -487,7 +508,7 @@ queue = {
 			if(mutation.type === "childList") {
 				dispatchTreeMutation(mutation, processedState);
 			} else if(mutation.type === "attributes") {
-				handleAttributeMutation(mutation);
+				dispatchAttributeChange(mutation);
 			}
 			index++;
 
@@ -537,6 +558,7 @@ domMutate = {
 				type: "childList",
 				target: target,
 				addedNodes: [node],
+				isConnected: isConnected.isConnected(target),
 				removedNodes: []
 			}]
 		);
@@ -565,7 +587,8 @@ domMutate = {
 				type: "childList",
 				target: target,
 				addedNodes: [],
-				removedNodes: [node]
+				removedNodes: [node],
+				isConnected: isConnected.isConnected(target)
 			}]
 		);
 		/*
