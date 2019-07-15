@@ -206,15 +206,101 @@ function mutationObserverTests() {
 		var parent = testUtils.getFixture();
 		var wrapper = doc.createElement("div");
 		var called = false;
-		domMutate.onNodeConnected(wrapper, function () {
+		var teardown = domMutate.onNodeConnected(wrapper, function () {
+			teardown();
 			called = true;
 		});
 
-		node.appendChild.call(parent, wrapper);
 
+		node.appendChild.call(parent, wrapper);
 		domMutate.flushRecords();
 		assert.ok(called, "insertion run immediately");
 		setTimeout(done, 1);
+	});
+
+	test('onDisconnected after onConnected', function(assert){
+		var done = assert.async();
+		var doc = globals.getKeyValue('document');
+		var parent = testUtils.getFixture();
+		var wrapper = doc.createElement("div");
+		var called = false;
+
+		var disconnectTeardown = domMutate.onNodeDisconnected(wrapper, function(){
+			assert.ok(called, "connected called before disconnected");
+			done();
+			disconnectTeardown();
+		});
+		var connectedTeardown = domMutate.onNodeConnected(wrapper, function () {
+			called = true;
+			assert.ok(true, "connected called");
+			connectedTeardown();
+		});
+
+		node.appendChild.call(parent, wrapper); // problem here is that it's removed
+		node.removeChild.call(parent, wrapper);
+	});
+
+	test('no double connected', function(assert){
+		assert.expect(1);
+		var done = assert.async();
+
+		var doc = globals.getKeyValue('document');
+
+
+		var outer = doc.createElement("div");
+		var inner = doc.createElement("div");
+
+		var connectedTeardown = domMutate.onNodeConnected(inner, function () {
+			assert.ok(true, "connected called");
+
+			setTimeout(function(){
+				connectedTeardown();
+				done();
+			},1);
+
+		});
+
+		var parent = testUtils.getFixture();
+
+
+		node.appendChild.call(parent, outer);
+		node.appendChild.call(outer, inner);
+	});
+
+	test("flushRecords while processing records issues changes in order", function(assert){
+		var done = assert.async();
+		var doc = globals.getKeyValue('document');
+
+		var parent = testUtils.getFixture();
+
+		var firstDiv = doc.createElement("div"),
+			secondDiv = doc.createElement("div"),
+			thirdDiv = doc.createElement("div");
+
+		var order = [];
+
+		var firstConnectedTeardown = domMutate.onNodeConnected(firstDiv, function () {
+			order.push("first");
+			node.appendChild.call(parent, thirdDiv);
+			domMutate.flushRecords();
+			firstConnectedTeardown();
+		});
+
+		var secondConnectedTeardown = domMutate.onNodeConnected(secondDiv, function () {
+			order.push("second");
+			secondConnectedTeardown();
+		});
+
+		var thirdConnectedTeardown = domMutate.onNodeConnected(thirdDiv, function () {
+			order.push("third");
+			assert.deepEqual(order, ["first","second","third"]);
+			order.push("third");
+			thirdConnectedTeardown();
+			done();
+		});
+
+		node.appendChild.call(parent, firstDiv);
+		node.appendChild.call(parent, secondDiv);
 	});
 
 }
@@ -245,4 +331,3 @@ testUtils.moduleWithMutationObserver('can-dom-mutate with real document', functi
 	});
 });
 moduleMutationObserver('can-dom-mutate with SimpleDocument', makeSimpleDocument(), mutationObserverTests);
-

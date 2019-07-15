@@ -4,7 +4,6 @@ var getRoot = require('can-globals/global/global');
 var getMutationObserver = require('can-globals/mutation-observer/mutation-observer');
 var namespace = require('can-namespace');
 var DOCUMENT = require("can-globals/document/document");
-var canReflect = require("can-reflect");
 
 var util = require('./-util');
 var eliminate = util.eliminate;
@@ -12,8 +11,20 @@ var subscription = util.subscription;
 var isDocumentElement = util.isDocumentElement;
 var getAllNodes = util.getAllNodes;
 
-var domMutate, dispatchInsertion, dispatchRemoval, dispatchAttributeChange;
+var domMutate,
+	dispatchNodeInserted,
+	dispatchNodeConnected,
+	dispatchGlobalConnected,
+	dispatchNodeRemoved,
+	dispatchNodeDisconnected,
+	dispatchGlobalDisconnected,
+	dispatchAttributeChange,
+	dispatchGlobalAttributeChange;
+
 var dataStore = new WeakMap();
+var isConnected = require("./-is-connected");
+
+var queue;
 
 function getRelatedData(node, key) {
 	var data = dataStore.get(node);
@@ -36,25 +47,23 @@ function deleteRelatedData(node, key) {
 	return delete data[key];
 }
 
+function toMutationEvent(node, mutation) {
+	return {target: node, sourceMutation: mutation};
+}
+/*
 function toMutationEvents (nodes) {
 	var events = [];
-	for (var i = 0; i < nodes.length; i++) {
+	for (var i = 0, length = nodes.length; i < length; i++) {
 		events.push({target: nodes[i]});
 	}
 	return events;
 }
-
-function batch(processBatchItems) {
-
-	return function batchAdd(items, callback, dispatchConnected, flush) {
-		processBatchItems(items, dispatchConnected, flush);
-		if(callback){
-			callback();
-		}
-	};
-}
+*/
 
 function getDocumentListeners (target, key) {
+	// TODO: it's odd these functions read DOCUMENT() instead of
+	// target.ownerDocument.  To change to ownerDocument, we might need a "is document"
+	// check.
 	var doc = DOCUMENT();
 	var data = getRelatedData(doc, key);
 	if (data) {
@@ -111,7 +120,7 @@ function nextTick(handler) {
 	promise.then(handler);
 }
 
-var recordsAndCallbacks = null;
+//var recordsAndCallbacks = null;
 
 function flushCallbacks(callbacks, arg){
 	var callbacksCount = callbacks.length;
@@ -120,7 +129,7 @@ function flushCallbacks(callbacks, arg){
 		safeCallbacks[c](arg);
 	}
 }
-
+/*
 function flushRecords(){
 	if(recordsAndCallbacks === null) {
 		return;
@@ -144,46 +153,20 @@ function flushAsync(callbacks, arg) {
 		recordsAndCallbacks.push({arg: arg, callbacks: callbacks});
 	}
 }
+*/
+function dispatch(getListeners, targetKey) {
 
-function dispatch(targetKey, connectedKey, documentDataKey) {
-	return function dispatchEvents(events, dispatchConnected, flush) {
-		// we could check the first element and see if it's in the document
-		// if it is conditionally fire "connected" events
-		for (var e = 0; e < events.length; e++) {
-			var event = events[e];
-			var target = event.target;
-			// we need to check
-			//
-			var targetListeners = getTargetListeners(target, targetKey);
+	return function dispatchEvents(event) {
 
-			if (targetListeners) {
-				flush(targetListeners, event);
-			}
+		var targetListeners = getListeners(event.target, targetKey);
 
-			if(!dispatchConnected) {
-				continue;
-			}
-
-			var connectedListeners;
-			if(connectedKey){
-				connectedListeners  = getTargetListeners(target, connectedKey);
-			}
-
-			if (connectedListeners) {
-				flush(connectedListeners, event);
-			}
-
-			if (!documentDataKey) {
-				continue;
-			}
-
-			var documentListeners = getDocumentListeners(target, documentDataKey);
-			if (documentListeners) {
-				flush(documentListeners, event);
-			}
+		if (targetListeners) {
+			flushCallbacks(targetListeners, event);
 		}
+
 	};
 }
+
 var count = 0;
 
 function observeMutations(target, observerKey, config, handler) {
@@ -234,7 +217,7 @@ function observeMutations(target, observerKey, config, handler) {
 		}
 	};
 }
-
+/*
 function handleTreeMutations(mutations) {
 	// in IE11, if the document is being removed
 	// (such as when an iframe is added and then removed)
@@ -243,25 +226,37 @@ function handleTreeMutations(mutations) {
 	// this will throw an `Object expected` error.
 	if (typeof Set === "undefined") { return; }
 
+	if(this.flushing === true) {
+		this.mutations.push.apply(this.mutations, mutations);
+		return;
+	}
+	this.flushing = true;
+	this.mutations = [].slice.call(mutations);
+
+	var mutation;
+
 	var mutationCount = mutations.length;
 	var added = new Set(), removed = new Set();
-	for (var m = 0; m < mutationCount; m++) {
-		var mutation = mutations[m];
 
+	while(mutation = this.mutations.shift()) {
+		var removedCount = mutation.removedNodes.length;
+		for (var r = 0; r < removedCount; r++) {
+			// get what already isn't in `removed`
+			var newRemoved = util.addToSet( getAllNodes(mutation.removedNodes[r]), removed);
+			dispatchRemoval( newRemoved.map(toMutationEvent), null, true, flushCallbacks );
+		}
 
 		var addedCount = mutation.addedNodes.length;
 		for (var a = 0; a < addedCount; a++) {
-			util.addToSet( getAllNodes(mutation.addedNodes[a]), added);
+			var newAdded = util.addToSet( getAllNodes(mutation.addedNodes[a]), added);
+			dispatchInsertion( newAdded.map(toMutationEvent), null, true, flushCallbacks );
 		}
 
-		var removedCount = mutation.removedNodes.length;
-		for (var r = 0; r < removedCount; r++) {
-			util.addToSet( getAllNodes(mutation.removedNodes[r]), removed);
-		}
 	}
 
-	dispatchRemoval( toMutationEvents( canReflect.toArray(removed) ), null, true, flushCallbacks );
-	dispatchInsertion( toMutationEvents( canReflect.toArray(added) ), null, true, flushCallbacks );
+	this.flushing = false;
+	//dispatchRemoval( toMutationEvents( canReflect.toArray(removed) ), null, true, flushCallbacks );
+	//dispatchInsertion( toMutationEvents( canReflect.toArray(added) ), null, true, flushCallbacks );
 }
 
 function handleAttributeMutations(mutations) {
@@ -280,6 +275,10 @@ function handleAttributeMutations(mutations) {
 		}
 	}
 }
+*/
+
+
+
 
 var treeMutationConfig = {
 	subtree: true,
@@ -304,9 +303,9 @@ function addNodeListener(listenerKey, observerKey, isAttributes) {
 
 		var stopObserving;
 		if (isAttributes) {
-			stopObserving = observeMutations(target, observerKey, attributeMutationConfig, handleAttributeMutations);
+			stopObserving = observeMutations(target, observerKey, attributeMutationConfig, queue.enqueueAndFlushMutations);
 		} else {
-			stopObserving = observeMutations(DOCUMENT(), observerKey, treeMutationConfig, handleTreeMutations);
+			stopObserving = observeMutations(DOCUMENT(), observerKey, treeMutationConfig, queue.enqueueAndFlushMutations);
 		}
 
 		addTargetListener(target, listenerKey, listener);
@@ -377,9 +376,16 @@ var documentAttributeChangeDataKey = domMutationPrefix + 'DocumentAttributeChang
 var treeDataKey = domMutationPrefix + 'TreeData';
 var attributeDataKey = domMutationPrefix + 'AttributeData';
 
-dispatchInsertion = batch(dispatch(insertedDataKey, connectedDataKey, documentConnectedDataKey));
-dispatchRemoval = batch(dispatch(removedDataKey, disconnectedDataKey, documentDisconnectedDataKey));
-dispatchAttributeChange = batch(dispatch(attributeChangeDataKey, null , documentAttributeChangeDataKey));
+dispatchNodeInserted = dispatch(getTargetListeners, insertedDataKey);
+dispatchNodeConnected = dispatch(getTargetListeners, connectedDataKey);
+dispatchGlobalConnected = dispatch(getDocumentListeners, documentConnectedDataKey);
+
+dispatchNodeRemoved = dispatch(getTargetListeners, removedDataKey);
+dispatchNodeDisconnected = dispatch(getTargetListeners, disconnectedDataKey);
+dispatchGlobalDisconnected = dispatch(getDocumentListeners, documentDisconnectedDataKey);
+
+dispatchAttributeChange = dispatch(getTargetListeners, attributeChangeDataKey);
+dispatchGlobalAttributeChange = dispatch(getDocumentListeners, documentAttributeChangeDataKey);
 
 // node listeners
 var addNodeConnectedListener = addNodeListener(connectedDataKey, treeDataKey);
@@ -402,6 +408,128 @@ var addAttributeChangeListener = addGlobalListener(
 	addNodeAttributeChangeListener
 );
 
+// ==========================================
+function dispatchTreeMutation(mutation, processedState) {
+	// was the mutation connected
+	var wasConnected = mutation.isConnected === true || mutation.isConnected === undefined;
+
+	// there are
+	// - the global connected
+	// - individual connected
+	// - individual inserted
+	var removedCount = mutation.removedNodes.length;
+	for (var r = 0; r < removedCount; r++) {
+		// get what already isn't in `removed`
+
+		// see if "removed"
+		// if wasConnected .. dispatch disconnected
+		var removedNodes = getAllNodes(mutation.removedNodes[r]);
+		removedNodes.forEach(function(node){
+			var event = toMutationEvent(node, mutation);
+
+			if( util.wasNotInSet(node, processedState.removed) ) {
+				dispatchNodeRemoved( event );
+			}
+			if(wasConnected && util.wasNotInSet(node, processedState.disconnected) ) {
+				dispatchNodeDisconnected( event );
+				dispatchGlobalDisconnected( event );
+			}
+		});
+	}
+
+	var addedCount = mutation.addedNodes.length;
+	for (var a = 0; a < addedCount; a++) {
+		var insertedNodes = getAllNodes(mutation.addedNodes[a]);
+		insertedNodes.forEach(function(node){
+			var event = toMutationEvent(node, mutation);
+
+			if(util.wasNotInSet(node, processedState.inserted)) {
+				dispatchNodeInserted( event );
+			}
+			if(wasConnected && util.wasNotInSet(node, processedState.connected) ) {
+				dispatchNodeConnected( event );
+				dispatchGlobalConnected( event );
+			}
+		});
+	}
+	// run mutation
+}
+
+
+
+
+
+
+var FLUSHING_MUTATIONS = [];
+var IS_FLUSHING = false;
+
+var IS_FLUSH_PENDING = false;
+var ENQUEUED_MUTATIONS = [];
+
+queue = {
+	// This is used to dispatch mutations immediately.
+	// This is usually called by the result of a mutation observer.
+	enqueueAndFlushMutations: function(mutations) {
+		if(IS_FLUSH_PENDING) {
+			FLUSHING_MUTATIONS.push.apply(FLUSHING_MUTATIONS, ENQUEUED_MUTATIONS);
+			IS_FLUSH_PENDING = false;
+			ENQUEUED_MUTATIONS = [];
+		}
+
+		FLUSHING_MUTATIONS.push.apply(FLUSHING_MUTATIONS, mutations);
+		if(IS_FLUSHING) {
+			return;
+		}
+
+		IS_FLUSHING = true;
+
+		var index = 0;
+
+		var processedState = {
+			connected: new Set(),
+			disconnected: new Set(),
+			inserted: new Set(),
+			removed: new Set()
+		};
+
+		while(index < FLUSHING_MUTATIONS.length) {
+			var mutation = FLUSHING_MUTATIONS[index];
+			// process mutation
+			if(mutation.type === "childList") {
+				dispatchTreeMutation(mutation, processedState);
+			} else if(mutation.type === "attributes") {
+				dispatchAttributeChange(mutation);
+			}
+			index++;
+
+		}
+		FLUSHING_MUTATIONS = [];
+		IS_FLUSHING = false;
+	},
+	// called to dipatch later unless we are already dispatching.
+	enqueueMutationsAndFlushAsync: function(mutations){
+		ENQUEUED_MUTATIONS.push.apply(ENQUEUED_MUTATIONS, mutations);
+
+		// if there are currently dispatching mutations, this should happen sometime after
+		if(!IS_FLUSH_PENDING) {
+			IS_FLUSH_PENDING = true;
+			nextTick(function(){
+				if(IS_FLUSH_PENDING) {
+					IS_FLUSH_PENDING = false;
+					var pending = ENQUEUED_MUTATIONS;
+					ENQUEUED_MUTATIONS = [];
+					queue.enqueueAndFlushMutations(pending);
+				} else {
+					// Someone called enqueueAndFlushMutations before this finished.
+				}
+			});
+		}
+	}
+};
+
+
+// ==========================================
+
 
 domMutate = {
 	/**
@@ -413,14 +541,23 @@ domMutate = {
 	* @signature `dispatchNodeInsertion( node [, callback ] )`
 	* @parent can-dom-mutate.static
 	* @param {Node} node The node on which to dispatch an insertion mutation.
-	* @param {function} callback The optional callback called after the mutation is dispatched.
 	*/
-	dispatchNodeInsertion: function (node, callback, dispatchConnected) {
+	dispatchNodeInsertion: function (node, target) {
+		queue.enqueueMutationsAndFlushAsync(
+			[{
+				type: "childList",
+				target: target,
+				addedNodes: [node],
+				isConnected: isConnected.isConnected(target),
+				removedNodes: []
+			}]
+		);
+		/*
 		var nodes = new Set();
 		util.addToSet( getAllNodes(node), nodes);
 		var events = toMutationEvents( canReflect.toArray(nodes) );
 		// this is basically an array of every single child of node including node
-		dispatchInsertion(events, callback, dispatchConnected, flushAsync);
+		dispatchInsertion(events, callback, dispatchConnected, flushAsync);*/
 	},
 
 	/**
@@ -434,11 +571,21 @@ domMutate = {
 	* @param {Node} node The node on which to dispatch a removal mutation.
 	* @param {function} callback The optional callback called after the mutation is dispatched.
 	*/
-	dispatchNodeRemoval: function (node, callback, dispatchConnected) {
+	dispatchNodeRemoval: function (node, target) {
+		queue.enqueueMutationsAndFlushAsync(
+			[{
+				type: "childList",
+				target: target,
+				addedNodes: [],
+				removedNodes: [node],
+				isConnected: isConnected.isConnected(target)
+			}]
+		);
+		/*
 		var nodes = new Set();
 		util.addToSet( getAllNodes(node), nodes);
 		var events = toMutationEvents( canReflect.toArray(nodes) );
-		dispatchRemoval(events, callback, dispatchConnected, flushAsync);
+		dispatchRemoval(events, callback, dispatchConnected, flushAsync);*/
 	},
 
 	/**
@@ -459,14 +606,16 @@ domMutate = {
 	* @param {Node} target The node on which to dispatch an attribute change mutation.
 	* @param {String} attributeName The attribute name whose value has changed.
 	* @param {String} oldValue The attribute value before the change.
-	* @param {function} callback The optional callback called after the mutation is dispatched.
 	*/
-	dispatchNodeAttributeChange: function (target, attributeName, oldValue, callback) {
-		dispatchAttributeChange([{
-			target: target,
-			attributeName: attributeName,
-			oldValue: oldValue
-		}], callback, true, flushAsync);
+	dispatchNodeAttributeChange: function (target, attributeName, oldValue) {
+		queue.enqueueMutationsAndFlushAsync(
+			[{
+				type: "attributes",
+				target: target,
+				attributeName: attributeName,
+				oldValue: oldValue
+			}]
+		);
 	},
 
 	/**
@@ -565,17 +714,14 @@ domMutate = {
 
 	flushRecords: function(doc){
 		doc = doc || DOCUMENT();
-		var data = dataStore.get(doc);
+		var data = dataStore.get(doc),
+			records = [];
 		if(data) {
 			if(data.domMutationTreeData && data.domMutationTreeData.observer) {
-				var records = data.domMutationTreeData.observer.takeRecords();
-				handleTreeMutations(records);
+				records = data.domMutationTreeData.observer.takeRecords();
 			}
-			// flush any synthetic records
-			flushRecords();
-
-
 		}
+		queue.enqueueAndFlushMutations(records);
 	},
 	onNodeInserted: addNodeInsertedListener,
 	onNodeRemoved: addNodeRemovedListener
