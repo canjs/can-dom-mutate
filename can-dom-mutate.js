@@ -59,15 +59,6 @@ function toMutationEvents (nodes) {
 	return events;
 }
 */
-function batch(processBatchItems) {
-
-	return function batchAdd(items, callback, dispatchConnected, flush) {
-		processBatchItems(items, dispatchConnected, flush);
-		if(callback){
-			callback();
-		}
-	};
-}
 
 function getDocumentListeners (target, key) {
 	// TODO: it's odd these functions read DOCUMENT() instead of
@@ -426,7 +417,6 @@ function dispatchTreeMutation(mutation, processedState) {
 	// - the global connected
 	// - individual connected
 	// - individual inserted
-
 	var removedCount = mutation.removedNodes.length;
 	for (var r = 0; r < removedCount; r++) {
 		// get what already isn't in `removed`
@@ -500,7 +490,7 @@ queue = {
 			disconnected: new Set(),
 			inserted: new Set(),
 			removed: new Set()
-		}
+		};
 
 		while(index < FLUSHING_MUTATIONS.length) {
 			var mutation = FLUSHING_MUTATIONS[index];
