@@ -51,15 +51,6 @@ function deleteRelatedData(node, key) {
 function toMutationEvent(node, mutation) {
 	return {target: node, sourceMutation: mutation};
 }
-/*
-function toMutationEvents (nodes) {
-	var events = [];
-	for (var i = 0, length = nodes.length; i < length; i++) {
-		events.push({target: nodes[i]});
-	}
-	return events;
-}
-*/
 
 function getDocumentListeners (target, key) {
 	// TODO: it's odd these functions read DOCUMENT() instead of
@@ -130,41 +121,15 @@ function flushCallbacks(callbacks, arg){
 		safeCallbacks[c](arg);
 	}
 }
-/*
-function flushRecords(){
-	if(recordsAndCallbacks === null) {
-		return;
-	}
-	var safeBatch = recordsAndCallbacks;
-	recordsAndCallbacks = null;
 
-	var batchCount = safeBatch.length;
-
-	for (var i = 0; i < batchCount; i++) {
-		var batchData = safeBatch[i];
-		flushCallbacks(batchData.callbacks, batchData.arg);
-	}
-}
-
-function flushAsync(callbacks, arg) {
-	if(recordsAndCallbacks === null) {
-		recordsAndCallbacks = [{arg: arg, callbacks: callbacks}];
-		nextTick(flushRecords);
-	} else {
-		recordsAndCallbacks.push({arg: arg, callbacks: callbacks});
-	}
-}
-*/
 function dispatch(getListeners, targetKey) {
 
 	return function dispatchEvents(event) {
-
 		var targetListeners = getListeners(event.target, targetKey);
 
 		if (targetListeners) {
 			flushCallbacks(targetListeners, event);
 		}
-
 	};
 }
 
@@ -220,68 +185,6 @@ function observeMutations(target, observerKey, config, handler) {
 		}
 	};
 }
-/*
-function handleTreeMutations(mutations) {
-	// in IE11, if the document is being removed
-	// (such as when an iframe is added and then removed)
-	// all of the global constructors will not exist
-	// If this happens before a tree mutation is handled,
-	// this will throw an `Object expected` error.
-	if (typeof Set === "undefined") { return; }
-
-	if(this.flushing === true) {
-		this.mutations.push.apply(this.mutations, mutations);
-		return;
-	}
-	this.flushing = true;
-	this.mutations = [].slice.call(mutations);
-
-	var mutation;
-
-	var mutationCount = mutations.length;
-	var added = new Set(), removed = new Set();
-
-	while(mutation = this.mutations.shift()) {
-		var removedCount = mutation.removedNodes.length;
-		for (var r = 0; r < removedCount; r++) {
-			// get what already isn't in `removed`
-			var newRemoved = util.addToSet( getAllNodes(mutation.removedNodes[r]), removed);
-			dispatchRemoval( newRemoved.map(toMutationEvent), null, true, flushCallbacks );
-		}
-
-		var addedCount = mutation.addedNodes.length;
-		for (var a = 0; a < addedCount; a++) {
-			var newAdded = util.addToSet( getAllNodes(mutation.addedNodes[a]), added);
-			dispatchInsertion( newAdded.map(toMutationEvent), null, true, flushCallbacks );
-		}
-
-	}
-
-	this.flushing = false;
-	//dispatchRemoval( toMutationEvents( canReflect.toArray(removed) ), null, true, flushCallbacks );
-	//dispatchInsertion( toMutationEvents( canReflect.toArray(added) ), null, true, flushCallbacks );
-}
-
-function handleAttributeMutations(mutations) {
-	var mutationCount = mutations.length;
-	for (var m = 0; m < mutationCount; m++) {
-		var mutation = mutations[m];
-		if (mutation.type === 'attributes') {
-			var node = mutation.target;
-			var attributeName = mutation.attributeName;
-			var oldValue = mutation.oldValue;
-			dispatchAttributeChange([{
-				target: node,
-				attributeName: attributeName,
-				oldValue: oldValue
-			}], null, true, flushCallbacks);
-		}
-	}
-}
-*/
-
-
-
 
 var treeMutationConfig = {
 	subtree: true,
@@ -457,10 +360,6 @@ function dispatchTreeMutation(mutation, processedState) {
 	}
 	// run mutation
 }
-
-
-
-
 
 
 var FLUSHING_MUTATIONS = [];
