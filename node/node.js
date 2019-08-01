@@ -179,6 +179,4 @@ var mutationObserverKey = 'MutationObserver';
 setMutateStrategy(globals.getKeyValue(mutationObserverKey));
 globals.onKeyValue(mutationObserverKey, setMutateStrategy);
 
-//mutate.isConnected = isConnected;
-
 module.exports = namespace.domMutateNode = domMutate.node = mutate;
