@@ -201,6 +201,7 @@ function observeMutations(target, observerKey, config, handler) {
 	};
 
 	if (observerData.observingCount === 0) {
+		globals.onKeyValue('MutationObserver', setupObserver);
 		setupObserver();
 	}
 
@@ -214,6 +215,7 @@ function observeMutations(target, observerKey, config, handler) {
 					observerData.observer.disconnect();
 				}
 				deleteRelatedData(target, observerKey);
+				globals.offKeyValue('MutationObserver', setupObserver);
 			}
 		}
 	};
