@@ -1,5 +1,6 @@
 'use strict';
 
+var globals = require('can-globals');
 var getRoot = require('can-globals/global/global');
 var getMutationObserver = require('can-globals/mutation-observer/mutation-observer');
 var namespace = require('can-namespace');
