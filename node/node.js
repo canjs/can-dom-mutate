@@ -29,6 +29,15 @@ var compat = {
 		}
 		return result;
 	},
+	setAttributeNS: function (namespace, name, value) {
+		var oldAttributeValue = this.getAttribute(name);
+		var result = this.setAttributeNS(namespace, name, value);
+		var newAttributeValue = this.getAttribute(name);
+		if (oldAttributeValue !== newAttributeValue) {
+			domMutate.dispatchNodeAttributeChange(this, name, oldAttributeValue);
+		}
+		return result;
+	},
 	removeAttribute: function (name) {
 		var oldAttributeValue = this.getAttribute(name);
 		var result = this.removeAttribute(name);
@@ -58,7 +67,7 @@ compatData.forEach(function (pair) {
 });
 
 var normal = {};
-var nodeMethods = ['appendChild', 'insertBefore', 'removeChild', 'replaceChild', 'setAttribute', 'removeAttribute'];
+var nodeMethods = ['appendChild', 'insertBefore', 'removeChild', 'replaceChild', 'setAttribute', 'setAttributeNS', 'removeAttribute'];
 nodeMethods.forEach(function (methodName) {
 	normal[methodName] = function () {
 		if(isConnected.isConnected(this)) {
