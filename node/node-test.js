@@ -78,6 +78,26 @@ moduleWithMutationObserver('can-dom-mutate/node', function () {
 		assert.equal(element.getAttribute('data-foo'), 'bar', 'Attribute should be set');
 	});
 
+	QUnit.test('setAttributeNS should not call domMutate.dispatchNodeAttributeChange', function (assert) {
+		var svgNamespaceURI =  "http://www.w3.org/2000/svg";
+		var xlinkHrefAttrNamespaceURI =  "http://www.w3.org/1999/xlink";
+		var xlinkHrefAttr = "xlink:href";
+		var origValue = "node/icons.svg#circle";
+		var newValue = "node/icons.svg#triangle";
+
+		var svg = document.createElementNS(svgNamespaceURI, "svg");
+		var svgUse = document.createElementNS(svgNamespaceURI, "use");
+		svgUse.setAttributeNS(xlinkHrefAttrNamespaceURI, xlinkHrefAttr, origValue);
+		svg.appendChild(svgUse);
+
+		var undo = neverCall(assert, domMutate, 'dispatchNodeAttributeChange');
+
+		node.setAttributeNS.call(svgUse, xlinkHrefAttrNamespaceURI, xlinkHrefAttr, newValue);
+		undo();
+
+		assert.equal(svgUse.getAttribute(xlinkHrefAttr), newValue, 'Attribute should be set');
+	});
+
 	QUnit.test('removeAttribute should not call domMutate.dispatchNodeAttributeChange', function (assert) {
 		var element = document.createElement('div');
 		var undo = neverCall(assert, domMutate, 'dispatchNodeAttributeChange');
@@ -249,6 +269,35 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 
 		node.setAttribute.call(element, 'data-foo', 'baz');
 	});
+
+	QUnit.test('setAttributeNS should call domMutate.dispatchNodeAttributeChange', function (assert) {
+		var done = assert.async();
+
+		var svgNamespaceURI =  "http://www.w3.org/2000/svg";
+		var xlinkHrefAttrNamespaceURI =  "http://www.w3.org/1999/xlink";
+		var xlinkHrefAttr = "xlink:href";
+		var origValue = "node/icons.svg#circle";
+		var newValue = "node/icons.svg#triangle";
+
+		var svg = document.createElementNS(svgNamespaceURI, "svg");
+		var svgUse = document.createElementNS(svgNamespaceURI, "use");
+		svgUse.setAttributeNS(xlinkHrefAttrNamespaceURI, xlinkHrefAttr, origValue);
+		svg.appendChild(svgUse);
+
+		var undo = mock(domMutate, 'dispatchNodeAttributeChange', function (node, attributeName, oldAttributeValue, callback) {
+			assert.equal(node, svgUse, 'Should pass the element whose attribute is changing');
+			assert.equal(attributeName, xlinkHrefAttr, 'Should pass the changed attribute name');
+			assert.equal(oldAttributeValue, origValue, 'Should pass the old attribute value');
+			assert.equal(callback, undefined, 'Should not pass a callback');
+			assert.equal(svgUse.getAttribute(xlinkHrefAttr), newValue, 'Node should have the new attribute value');
+			undo();
+			done();
+		});
+
+		node.setAttributeNS.call(svgUse, xlinkHrefAttrNamespaceURI, xlinkHrefAttr, newValue);
+	});
+	/*
+	*/
 
 	QUnit.test('removeAttribute should call domMutate.dispatchNodeAttributeChange', function (assert) {
 		var done = assert.async();

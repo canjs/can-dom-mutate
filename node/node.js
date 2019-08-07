@@ -41,9 +41,9 @@ var compat = {
 		return result;
 	},
 	setAttributeNS: function (namespace, name, value) {
-		var oldAttributeValue = this.getAttributeNS(namespace, name);
+		var oldAttributeValue = this.getAttribute(name);
 		var result = this.setAttributeNS(namespace, name, value);
-		var newAttributeValue = this.getAttributeNS(namespace, name);
+		var newAttributeValue = this.getAttribute(name);
 		if (oldAttributeValue !== newAttributeValue) {
 			domMutate.dispatchNodeAttributeChange(this, name, oldAttributeValue);
 		}
