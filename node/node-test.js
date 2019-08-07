@@ -296,8 +296,6 @@ moduleWithoutMutationObserver('can-dom-mutate/node', function () {
 
 		node.setAttributeNS.call(svgUse, xlinkHrefAttrNamespaceURI, xlinkHrefAttr, newValue);
 	});
-	/*
-	*/
 
 	QUnit.test('removeAttribute should call domMutate.dispatchNodeAttributeChange', function (assert) {
 		var done = assert.async();
