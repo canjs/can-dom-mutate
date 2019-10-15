@@ -303,6 +303,14 @@ function mutationObserverTests() {
 		node.appendChild.call(parent, secondDiv);
 	});
 
+	test("Works with no document", function(assert) {
+		try {
+			globals.setKeyValue("document", null);
+			assert.ok(true, "Able to set the document to null like happens in SSR");
+		} catch(e) {
+			assert.ok(false, e.message);
+		}
+	});
 }
 
 moduleMutationObserver('can-dom-mutate with real document', DOCUMENT(), mutationObserverTests);
