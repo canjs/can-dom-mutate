@@ -15,12 +15,16 @@ function getIsConnectedFromDocument(node) {
 }
 
 function setIsConnected(doc) {
-	var node = doc.createTextNode("");
-	isConnected = 'isConnected' in node.constructor.prototype ?
-		getIsConnectedFromNode :
-		getIsConnectedFromDocument;
-	if(mutate) {
-		mutate.isConnected = isConnected;
+	if(doc) {
+		var node = doc.createTextNode("");
+		isConnected = 'isConnected' in node.constructor.prototype ?
+			getIsConnectedFromNode :
+			getIsConnectedFromDocument;
+		if(mutate) {
+			mutate.isConnected = isConnected;
+		}
+	} else {
+		mutate.isConnected = getIsConnectedFromNode;
 	}
 }
 setIsConnected(globals.getKeyValue("document"));
