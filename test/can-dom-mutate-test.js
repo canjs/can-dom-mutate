@@ -304,11 +304,14 @@ function mutationObserverTests() {
 	});
 
 	test("Works with no document", function(assert) {
+		var lastDoc = globals.getKeyValue("document");
 		try {
 			globals.setKeyValue("document", null);
 			assert.ok(true, "Able to set the document to null like happens in SSR");
 		} catch(e) {
 			assert.ok(false, e.message);
+		} finally {
+			globals.setKeyValue("document", lastDoc);
 		}
 	});
 }
