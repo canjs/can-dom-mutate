@@ -17,6 +17,9 @@ function wasNotInSet(item, set) {
 
 
 function contains(parent, child){
+	if(child && child.nodeType === Node.TEXT_NODE) {
+		return contains(parent, child.parentNode);
+	}
 	if(parent.contains) {
 		return parent.contains(child);
 	}
