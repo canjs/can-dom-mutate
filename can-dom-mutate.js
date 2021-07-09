@@ -373,12 +373,12 @@ queue = {
 	// This is usually called by the result of a mutation observer.
 	enqueueAndFlushMutations: function(mutations) {
 		if(IS_FLUSH_PENDING) {
-			FLUSHING_MUTATIONS.push.apply(FLUSHING_MUTATIONS, ENQUEUED_MUTATIONS);
+			FLUSHING_MUTATIONS = FLUSHING_MUTATIONS.concat(ENQUEUED_MUTATIONS);
 			IS_FLUSH_PENDING = false;
 			ENQUEUED_MUTATIONS = [];
 		}
 
-		FLUSHING_MUTATIONS.push.apply(FLUSHING_MUTATIONS, mutations);
+		FLUSHING_MUTATIONS = FLUSHING_MUTATIONS.concat(mutations);
 		if(IS_FLUSHING) {
 			return;
 		}
@@ -410,7 +410,7 @@ queue = {
 	},
 	// called to dipatch later unless we are already dispatching.
 	enqueueMutationsAndFlushAsync: function(mutations){
-		ENQUEUED_MUTATIONS.push.apply(ENQUEUED_MUTATIONS, mutations);
+		ENQUEUED_MUTATIONS = ENQUEUED_MUTATIONS.concat(mutations);
 
 		// if there are currently dispatching mutations, this should happen sometime after
 		if(!IS_FLUSH_PENDING) {
